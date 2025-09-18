@@ -91,6 +91,26 @@ loop {
 - What is the policy for overlapping zones (modals)? Plan to add z-index support in v2.
 - Should chat timeline support scrollback? Possibly using registry viewport metadata.
 
+## Implementation Snapshot (2025-09-18)
+
+- Crate scaffolded under `pilot/room_mvp` with modules: `layout`, `registry`, `render`, `tokens`, and `zone` following RSB `MODULE_SPEC` conventions.
+- Constraint solver supports fixed/percent/min/max/flex constraints, padding, gap, and arbitrary nesting; see `layout::tests::*` for guard cases.
+- Zone registry tracks rects + hashed buffers to guarantee flicker-free diffs; `registry::tests` verifies dirty detection.
+- Renderer streams ANSI cursor targets through Boxy width helpers ensuring multi-width glyphs stay aligned.
+- Token router consumes RSB streams (`ctx`/`ns` tokens) and folds into zone updates; test demonstrates context switching.
+- Chat demo (`cargo run --example chat_demo`) wires everything together with resize handling and live input pinned to the footer zone.
+
+## Verification Checklist
+
+- `cargo fmt` — formatting gate
+- `cargo test` — unit coverage for solver, registry, renderer, tokens
+- `cargo run --example chat_demo` — manual smoke of selective updates & input bar
+
+## Immediate Follow-ups
+
+- ROOM-501: add bin/test glue so the pilot matches RSB harness conventions.
+- ROOM-502: expand README/dev notes with setup steps, token prefix guidelines, and troubleshooting for terminal quirks.
+
 ## Next Actions
 1. Create pilot crate with module skeleton (layout, registry, renderer, demo).
 2. Implement minimal solver & registry for static layout to validate pipeline.

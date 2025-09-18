@@ -1,2 +1,21 @@
 # room
-layout engine
+
+Pilot workbench for a flicker-free terminal layout engine driven by RSB token streams.
+
+## Components
+- `pilot/room_mvp`: experimental crate with layout solver, zone registry, renderer, and token router.
+- `docs/STRATEGY.md`: architectural notes, verification checklist, and follow-up items.
+- `TASKS.txt`: story-point backlog with completion status.
+
+## Quickstart
+```bash
+cargo fmt --manifest-path pilot/room_mvp/Cargo.toml
+cargo test --manifest-path pilot/room_mvp/Cargo.toml
+```
+
+## Demo
+Run the chat dashboard demo (uses ANSI cursor positioning and raw mode):
+```bash
+cargo run --example chat_demo --manifest-path pilot/room_mvp/Cargo.toml
+```
+Press `Esc` to exit the demo.
