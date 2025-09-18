@@ -1,0 +1,79 @@
+# ROOM LAYOUT ENGINE MVP ROADMAP
+# Generated: 2025-09-18
+# Epic 1: Flicker-Free Terminal Layout Engine
+
+## REFERENCES
+- REF-ROOM-001: rust/oodx/projects/rsb/docs/tech/features/FEATURES_TOKENS.md — canonical RSB token behavior & bucket API.
+- REF-ROOM-002: rust/oodx/projects/meteor/docs/ref/TOKEN_NAMESPACE_CONCEPT.md — upcoming context/namespace/bracket scheme.
+- REF-ROOM-003: rust/oodx/projects/xstream/src/xstream — advanced stream combinators for token routing & gating.
+- REF-ROOM-004: rust/oodx/projects/boxy/src/width_plugin.rs & WIDTH_CALCULATION.md — unicode width heuristics and sizing macros.
+- REF-ROOM-005: `bin/test.sh docs specs` (from rust/oodx/projects/rsb) — module & test harness expectations.
+
+## MILESTONE 1: Architecture & Bridging (Priority: HIGH)
+
+### ROOM-101: Capture MVP strategy draft [2 pts]
+- Summarize data flow: token stream → bucket → layout tree → zone registry → renderer.
+- Decide cursor control strategy (ANSI vs term crate) and zone lifecycle responsibilities.
+- Record outcomes in docs/STRATEGY.md with diagrams or tables for future contributors.
+
+### ROOM-102: Define zone addressing contract [3 pts]
+- Align prefix semantics with RSB/Meteor namespace evolution.
+- Specify how layout zones translate to token prefixes and fallback behaviors.
+- Produce acceptance criteria the solver can assert in unit tests.
+
+## MILESTONE 2: Layout Solver Core (Priority: CRITICAL)
+
+### ROOM-201: Implement constraint solver prototype [5 pts]
+- Build row/column solver supporting Fixed, Percent, Min/Max, Flex, Gap, Padding.
+- Validate integer math against sample terminal sizes (80x24, 120x40) with unit tests.
+- Store results as `Rect` structs consumable by renderer and zone registry.
+
+### ROOM-202: Introduce nested layout support [3 pts]
+- Allow zones to host child layouts (e.g., sidebar with sub-panels) using tree metadata.
+- Enforce namespace depth warnings consistent with Meteor spec (≤4 levels hard limit).
+- Cover recursion edge cases in tests.
+
+## MILESTONE 3: Zone Registry & Rendering (Priority: CRITICAL)
+
+### ROOM-301: Build zone registry with diffing [5 pts]
+- Track zone id → rect → last rendered buffer hash.
+- Detect dirty zones based on token deltas and trigger selective rerenders.
+- Expose metrics for debugging (render count, skipped updates).
+
+### ROOM-302: Implement cursor-based renderer [4 pts]
+- Use ANSI cursor positioning to update only dirty zones without full redraw.
+- Integrate Boxy width helpers to clamp content per rect (wrapping, truncation).
+- Provide safe fallback for terminals lacking cursor addressing.
+
+## MILESTONE 4: Interaction & Chat Demo (Priority: HIGH)
+
+### ROOM-401: Persist bottom input bar layout [3 pts]
+- Reserve static footer zone pinned to terminal bottom with height=3 (prompt, typing, status).
+- Ensure layout recalculates on resize without losing input history state.
+- Add regression test verifying footer rect stability across updates.
+
+### ROOM-402: Prototype chat dashboard demo [3 pts]
+- Assemble example pipeline ingesting synthetic chat tokens (rooms/ participants/ timeline).
+- Showcase selective updates: new message append, sidebar counter updates, typing indicator.
+- Provide demo runner script under `examples/` or `bin/` to exercise MVP.
+
+## MILESTONE 5: Testing, Tooling & Docs (Priority: MEDIUM)
+
+### ROOM-501: Integrate with RSB test harness patterns [2 pts]
+- Mirror MODULE_SPEC layout (mod.rs orchestrator, submodules, macros).
+- Add cargo tests + optional `bin/test.sh room` shim for cross-repo consistency.
+- Document test expectations referencing REF-ROOM-005.
+
+### ROOM-502: Write developer guide & troubleshooting [2 pts]
+- Expand README with quickstart, token prefix rules, cursor requirements.
+- Document known limitations (overlapping zones, terminal compatibility, unicode caveats).
+- Capture follow-up research topics in CONTINUE.md for next session.
+
+---
+
+## STATUS LEGEND
+- [ ] Not Started
+- [~] In Progress
+- [x] Complete
+
+(Use checklist updates alongside commits to reflect progress.)
