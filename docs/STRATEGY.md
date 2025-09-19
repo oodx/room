@@ -94,6 +94,7 @@ loop {
 ## Implementation Snapshot (2025-09-18)
 
 - Crate scaffolded under `room` with modules: `layout`, `registry`, `render`, `tokens`, and `zone` following RSB `MODULE_SPEC` conventions.
+- Boxy integration demo (`examples/boxy_dashboard`) renders focusable panels using a local helper that wraps Boxy components; upstream Boxy removed the original helper in newer releases.
 - Constraint solver supports fixed/percent/min/max/flex constraints, padding, gap, and arbitrary nesting; see `layout::tests::*` for guard cases.
 - Zone registry tracks rects + hashed buffers to guarantee flicker-free diffs; `registry::tests` verifies dirty detection.
 - Renderer streams ANSI cursor targets through Boxy width helpers ensuring multi-width glyphs stay aligned.
@@ -102,6 +103,19 @@ loop {
 - Chat demo (`cargo run --example chat_demo`) wires everything together with resize handling and live input pinned to the footer zone.
 - Footer layout locks the input prompt to one row and dedicates four status lines below it so diffed updates never crowd the cursor.
 - Crate structure follows the Module Spec layout (module orchestrators with `core`/`utils` split) so promotion into the main RSB tree is mechanical.
+
+### Boxy Integration Details (2025-09-19)
+
+- Replaced the removed `render_box_to_string` with an example-local helper that stitches together Boxy’s `Header`, `Body`, `Status`, and `Footer`, reusing the protected width logic and `get_display_width` utilities.
+- Minimum width honours the existing Boxy environment knobs (e.g. `BOXY_MIN_WIDTH`) via `rsb::prelude::param!` so behaviour matches the CLI and future adapters.
+- Dropped token-stream routing in favour of direct `ZoneRegistry::apply_content` calls; Boxy strings contain ANSI escapes that confused the router’s `k=v` parser.
+- Cursor restoration now falls back to solved rects to guarantee focus moves even if the registry has not yet persisted coordinates.
+
+#### Follow-up Opportunities
+
+- **Room**: promote the helper into a reusable adapter module (e.g. `render::boxy`) that returns both rendered content and caret hints and optionally integrates token sanitisation.
+- **Boxy**: consider reintroducing an official `render_box_to_string`/adapter layer so downstream crates (Room, Muxy) can rely on a stable API rather than maintaining snapshots.
+- **Tokens**: if future demos require token routing, add an ANSI-safe encoding (base64 payloads or RSB’s structured tokens) so rich strings can survive the parser.
 
 ## Verification Checklist
 

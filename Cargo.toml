@@ -8,12 +8,16 @@ name = "room_mvp"
 path = "src/lib.rs"
 
 [dependencies]
-rsb = { path = "../../../projects/rsb" }
-crossterm = "0.29"
+rsb = { path = "../../projects/rsb" }
+crossterm = "0.27"
 blake3 = "1.5"
-thiserror = "2.0"
+thiserror = "1.0"
 strip-ansi-escapes = "0.2"
-unicode-width = "0.2"
+unicode-width = "0.1"
 
 [patch."https://github.com/oodx/rsb"]
+rsb = { path = "../../projects/rsb" }
+
+[dev-dependencies]
+boxy = { path = "../../projects/boxy" }
 rsb = { path = "../../projects/rsb", features = ["visuals"] }

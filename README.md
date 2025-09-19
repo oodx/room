@@ -19,3 +19,12 @@ Run the chat dashboard demo (uses ANSI cursor positioning and raw mode):
 cargo run --example chat_demo --manifest-path room/Cargo.toml
 ```
 Press `Esc` to exit the demo.
+
+### Boxy dashboard demo
+
+Render three focusable Boxy panels with status updates and cursor tracking:
+
+```bash
+cargo run --example boxy_dashboard --manifest-path room/Cargo.toml
+```
+Requires the local `projects/boxy` and `projects/rsb` checkouts; press `Esc` to exit, `Tab` to cycle focus.
