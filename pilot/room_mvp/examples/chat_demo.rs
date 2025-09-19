@@ -232,7 +232,13 @@ fn render_state(
     renderer.settings_mut().restore_cursor = Some((input_rect.y, caret_x));
 
     let status_body = "Enter to send · ESC to leave";
-    let status_text = format!("{}\n{}", underline, status_body);
+    let status_lines = vec![
+        underline.clone(),
+        status_body.to_string(),
+        String::new(),
+        String::new(),
+    ];
+    let status_text = status_lines.join("\n");
 
     let stream = format!(
         "ctx=app; ns=chat.header; content={}; ns=chat.timeline; content={}; ns=chat.sidebar; content={}; ns=chat.footer.status; content={}; ns=chat.footer.input; content={};",
@@ -267,7 +273,7 @@ fn build_layout() -> LayoutTree {
         constraints: vec![
             Constraint::Fixed(1),
             Constraint::Flex(1),
-            Constraint::Fixed(3),
+            Constraint::Fixed(5),
         ],
         children: vec![
             LayoutNode::leaf(HEADER_ZONE),
