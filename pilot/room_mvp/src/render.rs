@@ -1,7 +1,6 @@
 use std::io::Write;
 
-use boxy::width_plugin::get_display_width;
-
+use crate::display_width;
 use crate::error::Result;
 use crate::geometry::Rect;
 use crate::registry::{ZoneId, ZoneState};
@@ -100,7 +99,7 @@ fn wrap_to_width(content: &str, width: u16) -> Vec<String> {
                 continue;
             }
             current.push(ch);
-            let display = get_display_width(&current) as u16;
+            let display = display_width(&current) as u16;
             if display > width {
                 current.pop();
                 if !current.is_empty() {
@@ -138,7 +137,7 @@ fn wrap_to_width(content: &str, width: u16) -> Vec<String> {
 }
 
 fn pad_line(line: &mut String, width: u16) {
-    let mut display = get_display_width(line) as u16;
+    let mut display = display_width(line) as u16;
     while display < width {
         line.push(' ');
         display += 1;
@@ -146,10 +145,10 @@ fn pad_line(line: &mut String, width: u16) {
 
     if display > width {
         // Truncate any overshoot caused by ANSI codes being stripped differently.
-        while (get_display_width(line) as u16) > width {
+        while (display_width(line) as u16) > width {
             line.pop();
         }
-        while (get_display_width(line) as u16) < width {
+        while (display_width(line) as u16) < width {
             line.push(' ');
         }
     }

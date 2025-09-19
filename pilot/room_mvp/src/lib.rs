@@ -10,6 +10,7 @@ pub mod layout;
 pub mod registry;
 pub mod render;
 pub mod tokens;
+pub mod width;
 pub mod zone;
 
 pub use error::{LayoutError, Result};
@@ -18,3 +19,4 @@ pub use layout::{Constraint, Direction, LayoutNode, LayoutTree};
 pub use registry::{ZoneContent, ZoneId, ZoneRegistry};
 pub use render::{AnsiRenderer, RendererSettings};
 pub use tokens::{ZoneTokenRouter, ZoneTokenUpdate};
+pub use width::display_width;

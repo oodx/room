@@ -2,14 +2,13 @@ use std::collections::VecDeque;
 use std::io::{self, Write};
 use std::time::{Duration, Instant};
 
-use boxy::width_plugin::get_display_width;
 use crossterm::ExecutableCommand;
 use crossterm::cursor;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use crossterm::terminal::{self, Clear, ClearType};
 use room_mvp::{
     AnsiRenderer, Constraint, Direction, LayoutNode, LayoutTree, Rect, Result, Size, ZoneRegistry,
-    ZoneTokenRouter,
+    ZoneTokenRouter, display_width,
 };
 use rsb::token::format::{escape_token, quote_token};
 
@@ -222,7 +221,7 @@ fn render_state(
 
     let underline = "─".repeat(status_rect.width.max(2) as usize);
     let input_display = format!(">{}", input_buffer);
-    let typed_width = get_display_width(input_buffer) as u16;
+    let typed_width = display_width(input_buffer) as u16;
     let caret_base = input_rect.x.saturating_add(1);
     let caret_limit = input_rect
         .x
