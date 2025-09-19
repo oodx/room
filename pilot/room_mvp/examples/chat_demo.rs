@@ -277,8 +277,8 @@ fn build_layout() -> LayoutTree {
             LayoutNode {
                 id: "app:chat.footer".into(),
                 direction: Direction::Column,
-                constraints: vec![Constraint::Fixed(1), Constraint::Fixed(2)],
-                children: vec![LayoutNode::leaf(STATUS_ZONE), LayoutNode::leaf(INPUT_ZONE)],
+                constraints: vec![Constraint::Fixed(2), Constraint::Fixed(1)],
+                children: vec![LayoutNode::leaf(INPUT_ZONE), LayoutNode::leaf(STATUS_ZONE)],
                 gap: 0,
                 padding: 1,
             },
