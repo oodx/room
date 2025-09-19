@@ -77,3 +77,5 @@
 - [x] Complete
 
 (Use checklist updates alongside commits to reflect progress.)
+
+cargo run --example chat_demo --manifest-path pilot/room_mvp/Cargo.toml

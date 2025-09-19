@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use rsb::token::{Token, tokenize_string};
+use rsb::token::{Token, format::unescape_token, tokenize_string};
 
 use crate::error::{LayoutError, Result};
 use crate::registry::{ZoneContent, ZoneId};
@@ -67,7 +67,8 @@ impl ZoneTokenRouter {
 
             let zone_id = format!("{}:{}", context, ns);
             let entry = zones.entry(zone_id).or_default();
-            entry.push(&token.key, &token.value);
+            let normalized_value = unescape_token(&token.value);
+            entry.push(&token.key, normalized_value);
         }
 
         let mut updates: Vec<ZoneTokenUpdate> = zones
@@ -90,13 +91,13 @@ struct ZoneAccumulator {
 }
 
 impl ZoneAccumulator {
-    fn push(&mut self, key: &str, value: &str) {
+    fn push(&mut self, key: &str, value: String) {
         match key {
             "content" | "text" => {
-                self.override_content = Some(value.to_string());
+                self.override_content = Some(value);
             }
             _ => {
-                self.pairs.push((key.to_string(), value.to_string()));
+                self.pairs.push((key.to_string(), value));
             }
         }
     }

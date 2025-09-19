@@ -24,8 +24,7 @@ fn main() -> Result<()> {
     terminal::enable_raw_mode()?;
     stdout
         .execute(terminal::EnterAlternateScreen)?
-        .execute(Clear(ClearType::All))?
-        .execute(cursor::Hide)?;
+        .execute(Clear(ClearType::All))?;
 
     let result = run_app(&mut stdout);
 
@@ -48,7 +47,7 @@ fn run_app(stdout: &mut impl Write) -> Result<()> {
         .unwrap_or(Rect::new(0, height.saturating_sub(2), width, 2));
 
     let mut renderer = AnsiRenderer::with_default();
-    renderer.settings_mut().restore_cursor = Some((input_rect.y + 1, input_rect.x + 2));
+    renderer.settings_mut().restore_cursor = Some((input_rect.y, input_rect.x + 2));
 
     let initial_dirty = registry.take_dirty();
     if !initial_dirty.is_empty() {
@@ -223,7 +222,7 @@ fn render_state(
                 .x
                 .saturating_add(input_rect.width.saturating_sub(1)),
         );
-    renderer.settings_mut().restore_cursor = Some((input_rect.y + 1, caret_x));
+    renderer.settings_mut().restore_cursor = Some((input_rect.y, caret_x));
 
     let status_text = "Enter to send · ESC to leave";
 
