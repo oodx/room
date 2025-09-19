@@ -81,7 +81,7 @@ loop {
 - Hook into RSB-style harness: add `cargo test --package room --all-targets` and optional `bin/test_room.sh` wrapper calling `bin/test.sh` expectations.
 
 ## Implementation Notes
-- Place prototype crate under `pilot/room_mvp/` until stabilized (per AGENTS.md guidance).
+- Crate lives under `room/` now that the Module Spec structure is in place (was previously under `pilot/room_mvp/`).
 - Respect ASCII-first output but allow Boxy width calculators for multibyte strings.
 - Document namespace expectations and bracket transformations in README and CONTINUE notes.
 - Monitor for future Meteor migration; keep context handling feature-gated for now (`meteor_namespace` feature flag).
@@ -93,7 +93,7 @@ loop {
 
 ## Implementation Snapshot (2025-09-18)
 
-- Crate scaffolded under `pilot/room_mvp` with modules: `layout`, `registry`, `render`, `tokens`, and `zone` following RSB `MODULE_SPEC` conventions.
+- Crate scaffolded under `room` with modules: `layout`, `registry`, `render`, `tokens`, and `zone` following RSB `MODULE_SPEC` conventions.
 - Constraint solver supports fixed/percent/min/max/flex constraints, padding, gap, and arbitrary nesting; see `layout::tests::*` for guard cases.
 - Zone registry tracks rects + hashed buffers to guarantee flicker-free diffs; `registry::tests` verifies dirty detection.
 - Renderer streams ANSI cursor targets through Boxy width helpers ensuring multi-width glyphs stay aligned.

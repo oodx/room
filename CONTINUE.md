@@ -1,7 +1,7 @@
 # Session Continuation - Terminal Layout Engine Research
 
 ## Latest Session (2025-09-18)
-- Scaffolded `pilot/room_mvp` with solver, registry, renderer, token router, and a chat demo example showcasing selective redraw and fixed footer input.
+- Scaffolded the crate (now under `room/`, previously `pilot/room_mvp`) with solver, registry, renderer, token router, and a chat demo example showcasing selective redraw and fixed footer input.
 - Constraint solver now honors fixed/percent/min/max/flex constraints with padding/gap; registry hashing prevents redundant renders; renderer leverages Boxy width helpers for Unicode safety.
 - Verification: `cargo fmt`, `cargo test`, and `cargo run --example chat_demo`.
 - Remaining follow-ups: ROOM-501 (wire pilot into RSB `bin/test.sh`) and ROOM-502 (write developer guide + troubleshooting notes).
