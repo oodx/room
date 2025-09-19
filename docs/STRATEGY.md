@@ -51,7 +51,7 @@ Token Stream → TokenBucket → Layout Graph → Zone Registry → Renderer
 - Offer fallbacks for terminals without cursor positioning (full redraw) guarded by feature flag.
 
 ### 5. Chat Input Integration
-- Reserve bottom `FooterZone` with height=3 (status, input, instructions).
+- Reserve bottom `FooterZone` with height=5 (chat input row + four stacked status lines for divider + future messaging).
 - Maintain separate input buffer and editing state; on every loop, re-render footer last to keep cursor anchored.
 - Use XStream timed gate to throttle input echo tokens vs. layout updates.
 - Provide `InputController` handling key events, storing unsubmitted message, pushing tokens (`chat.input:text`) back into main channel.
@@ -99,6 +99,7 @@ loop {
 - Renderer streams ANSI cursor targets through Boxy width helpers ensuring multi-width glyphs stay aligned.
 - Token router consumes RSB streams (`ctx`/`ns` tokens) and folds into zone updates; test demonstrates context switching.
 - Chat demo (`cargo run --example chat_demo`) wires everything together with resize handling and live input pinned to the footer zone.
+- Footer layout locks the input prompt to one row and dedicates four status lines below it so diffed updates never crowd the cursor.
 
 ## Verification Checklist
 
