@@ -44,10 +44,10 @@ fn run_app(stdout: &mut impl Write) -> Result<()> {
     registry.sync_layout(&rects);
     let input_rect = registry
         .rect_of(&INPUT_ZONE.to_string())
-        .unwrap_or(Rect::new(0, height.saturating_sub(2), width, 2));
+        .unwrap_or(Rect::new(0, height.saturating_sub(5), width, 1));
 
     let mut renderer = AnsiRenderer::with_default();
-    renderer.settings_mut().restore_cursor = Some((input_rect.y, input_rect.x + 2));
+    renderer.settings_mut().restore_cursor = Some((input_rect.y, input_rect.x + 1));
 
     let initial_dirty = registry.take_dirty();
     if !initial_dirty.is_empty() {
@@ -185,7 +185,7 @@ fn render_state(
     let input_rect = registry
         .rect_of(&INPUT_ZONE.to_string())
         .or_else(|| rects.get(INPUT_ZONE).cloned())
-        .unwrap_or(Rect::new(0, 0, 20, 2));
+        .unwrap_or(Rect::new(0, 0, 20, 1));
 
     let header_text = format!("Room Layout MVP · {} online", participants.len());
     let max_messages = (rects
@@ -210,28 +210,36 @@ fn render_state(
         .collect::<Vec<_>>()
         .join("\n");
 
-    let underline = "─".repeat(input_rect.width.max(2) as usize);
-    let input_display = format!("> {}\n{}", input_buffer, underline);
-    let input_width = get_display_width(&format!("> {}", input_buffer)) as u16;
-    let caret_x = input_rect
+    let status_rect = registry
+        .rect_of(&STATUS_ZONE.to_string())
+        .or_else(|| rects.get(STATUS_ZONE).cloned())
+        .unwrap_or(Rect::new(
+            input_rect.x,
+            input_rect.y.saturating_add(1),
+            input_rect.width,
+            4,
+        ));
+
+    let underline = "─".repeat(status_rect.width.max(2) as usize);
+    let input_display = format!(">{}", input_buffer);
+    let typed_width = get_display_width(input_buffer) as u16;
+    let caret_base = input_rect.x.saturating_add(1);
+    let caret_limit = input_rect
         .x
-        .saturating_add(2)
-        .saturating_add(input_width)
-        .min(
-            input_rect
-                .x
-                .saturating_add(input_rect.width.saturating_sub(1)),
-        );
+        .saturating_add(input_rect.width.saturating_sub(1))
+        .max(caret_base);
+    let caret_x = caret_base.saturating_add(typed_width).min(caret_limit);
     renderer.settings_mut().restore_cursor = Some((input_rect.y, caret_x));
 
-    let status_text = "Enter to send · ESC to leave";
+    let status_body = "Enter to send · ESC to leave";
+    let status_text = format!("{}\n{}", underline, status_body);
 
     let stream = format!(
         "ctx=app; ns=chat.header; content={}; ns=chat.timeline; content={}; ns=chat.sidebar; content={}; ns=chat.footer.status; content={}; ns=chat.footer.input; content={};",
         encode(&header_text),
         encode(&timeline_text),
         encode(&sidebar_text),
-        encode(status_text),
+        encode(&status_text),
         encode(&input_display),
     );
 
@@ -277,7 +285,7 @@ fn build_layout() -> LayoutTree {
             LayoutNode {
                 id: "app:chat.footer".into(),
                 direction: Direction::Column,
-                constraints: vec![Constraint::Fixed(2), Constraint::Fixed(1)],
+                constraints: vec![Constraint::Fixed(1), Constraint::Fixed(4)],
                 children: vec![LayoutNode::leaf(INPUT_ZONE), LayoutNode::leaf(STATUS_ZONE)],
                 gap: 0,
                 padding: 0,
