@@ -97,9 +97,11 @@ loop {
 - Constraint solver supports fixed/percent/min/max/flex constraints, padding, gap, and arbitrary nesting; see `layout::tests::*` for guard cases.
 - Zone registry tracks rects + hashed buffers to guarantee flicker-free diffs; `registry::tests` verifies dirty detection.
 - Renderer streams ANSI cursor targets through Boxy width helpers ensuring multi-width glyphs stay aligned.
+- Renderer now depends on internal `width::utils::display_width` (copied from the Boxy width plugin) so we stay Unicode-safe without the full Boxy crate.
 - Token router consumes RSB streams (`ctx`/`ns` tokens) and folds into zone updates; test demonstrates context switching.
 - Chat demo (`cargo run --example chat_demo`) wires everything together with resize handling and live input pinned to the footer zone.
 - Footer layout locks the input prompt to one row and dedicates four status lines below it so diffed updates never crowd the cursor.
+- Crate structure follows the Module Spec layout (module orchestrators with `core`/`utils` split) so promotion into the main RSB tree is mechanical.
 
 ## Verification Checklist
 
