@@ -280,7 +280,7 @@ fn build_layout() -> LayoutTree {
                 constraints: vec![Constraint::Fixed(2), Constraint::Fixed(1)],
                 children: vec![LayoutNode::leaf(INPUT_ZONE), LayoutNode::leaf(STATUS_ZONE)],
                 gap: 0,
-                padding: 1,
+                padding: 0,
             },
         ],
         gap: 1,
