@@ -116,6 +116,10 @@ impl ZoneRegistry {
     pub fn rect_of(&self, zone_id: &ZoneId) -> Option<Rect> {
         self.entries.get(zone_id).map(|state| state.rect)
     }
+
+    pub fn has_dirty(&self) -> bool {
+        !self.dirty.is_empty()
+    }
 }
 
 #[cfg(test)]

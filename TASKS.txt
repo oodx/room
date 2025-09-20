@@ -1,73 +1,47 @@
-# ROOM LAYOUT ENGINE MVP ROADMAP
+# ROOM RUNTIME & PLUGIN ROADMAP
 # Generated: 2025-09-18
-# Epic 1: Flicker-Free Terminal Layout Engine
+# Epic 2: Runtime, Plugins, and Tooling
 
 ## REFERENCES
-- REF-ROOM-001: rust/oodx/projects/rsb/docs/tech/features/FEATURES_TOKENS.md — canonical RSB token behavior & bucket API.
-- REF-ROOM-002: rust/oodx/projects/meteor/docs/ref/TOKEN_NAMESPACE_CONCEPT.md — upcoming context/namespace/bracket scheme.
-- REF-ROOM-003: rust/oodx/projects/xstream/src/xstream — advanced stream combinators for token routing & gating.
-- REF-ROOM-004: rust/oodx/projects/boxy/src/width_plugin.rs & WIDTH_CALCULATION.md — unicode width heuristics and sizing macros.
-- REF-ROOM-005: `bin/test.sh docs specs` (from rust/oodx/projects/rsb) — module & test harness expectations.
+- REF-ROOM-101: docs/RUNTIME_STRAT.md — runtime lifecycle, logging, benchmarking.
+- REF-ROOM-102: BACKLOG.md — open items from MVP roadmap.
+- REF-ROOM-103: docs/STRATEGY.md — original architecture notes.
 
-## MILESTONE 1: Architecture & Bridging (Priority: HIGH)
+## MILESTONE 6: Runtime Core (Priority: CRITICAL)
 
-### [x] ROOM-101: Capture MVP strategy draft [2 pts]
-- Summarize data flow: token stream → bucket → layout tree → zone registry → renderer.
-- Decide cursor control strategy (ANSI vs term crate) and zone lifecycle responsibilities.
-- Record outcomes in docs/STRATEGY.md with diagrams or tables for future contributors.
+### [ ] ROOM-601: Scaffold RoomRuntime coordinator [5 pts]
+- Implement `RoomRuntime` struct owning layout, registry, renderer, event loop.
+- Add basic `Event` enum and polling over stdin + timer.
+- Provide `run()` with graceful shutdown and cursor restore guarantees.
 
-### [x] ROOM-102: Define zone addressing contract [3 pts]
-- Align prefix semantics with RSB/Meteor namespace evolution.
-- Specify how layout zones translate to token prefixes and fallback behaviors.
-- Produce acceptance criteria the solver can assert in unit tests.
+### [ ] ROOM-602: Define plugin system & port chat demo [5 pts]
+- Introduce `RoomPlugin` trait with `on_event`/`before_render` hooks.
+- Extract chat input, status bar, scripted bot into plugins.
+- Update `examples/chat_demo.rs` (or new runtime demo) to use runtime + plugins.
 
-## MILESTONE 2: Layout Solver Core (Priority: CRITICAL)
+## MILESTONE 7: Observability & Performance (Priority: HIGH)
 
-### [x] ROOM-201: Implement constraint solver prototype [5 pts]
-- Build row/column solver supporting Fixed, Percent, Min/Max, Flex, Gap, Padding.
-- Validate integer math against sample terminal sizes (80x24, 120x40) with unit tests.
-- Store results as `Rect` structs consumable by renderer and zone registry.
+### [ ] ROOM-603: Structured logging + metrics scaffold [3 pts]
+- Add feature-gated logging facade with rotating JSONL file output.
+- Emit runtime lifecycle events (`event_received`, `token_applied`, `render_span`).
+- Surface basic metrics (render FPS, dirty zone counts) via log snapshots.
 
-### [x] ROOM-202: Introduce nested layout support [3 pts]
-- Allow zones to host child layouts (e.g., sidebar with sub-panels) using tree metadata.
-- Enforce namespace depth warnings consistent with Meteor spec (≤4 levels hard limit).
-- Cover recursion edge cases in tests.
+### [ ] ROOM-604: Benchmark harness (Criterion) [3 pts]
+- Add benchmarking crate covering layout solve, render diffs, end-to-end loop.
+- Ensure benches replay recorded event traces for regression detection.
+- Wire into CI (or document manual invocation) with baseline comparison guidance.
 
-## MILESTONE 3: Zone Registry & Rendering (Priority: CRITICAL)
+## MILESTONE 8: Declarative Layout & Examples (Priority: MEDIUM)
 
-### [x] ROOM-301: Build zone registry with diffing [5 pts]
-- Track zone id → rect → last rendered buffer hash.
-- Detect dirty zones based on token deltas and trigger selective rerenders.
-- Expose metrics for debugging (render count, skipped updates).
+### [ ] ROOM-605: Layout DSL prototype [4 pts]
+- Design minimal DSL (YAML/HTML-like) that compiles to `LayoutTree` + zone metadata.
+- Support plugin/component declarations (e.g., `<chat-input channel="app:input"/>`).
+- Recreate chat layout via DSL to validate compiler.
 
-### [x] ROOM-302: Implement cursor-based renderer [4 pts]
-- Use ANSI cursor positioning to update only dirty zones without full redraw.
-- Integrate Boxy width helpers to clamp content per rect (wrapping, truncation).
-- Provide safe fallback for terminals lacking cursor addressing.
-
-## MILESTONE 4: Interaction & Chat Demo (Priority: HIGH)
-
-### [x] ROOM-401: Persist bottom input bar layout [3 pts]
-- Reserve static footer zone pinned to terminal bottom with height=3 (prompt, typing, status).
-- Ensure layout recalculates on resize without losing input history state.
-- Add regression test verifying footer rect stability across updates.
-
-### [x] ROOM-402: Prototype chat dashboard demo [3 pts]
-- Assemble example pipeline ingesting synthetic chat tokens (rooms/ participants/ timeline).
-- Showcase selective updates: new message append, sidebar counter updates, typing indicator.
-- Provide demo runner script under `examples/` or `bin/` to exercise MVP.
-
-## MILESTONE 5: Testing, Tooling & Docs (Priority: MEDIUM)
-
-### [ ] ROOM-501: Integrate with RSB test harness patterns [2 pts]
-- Mirror MODULE_SPEC layout (mod.rs orchestrator, submodules, macros).
-- Add cargo tests + optional `bin/test.sh room` shim for cross-repo consistency.
-- Document test expectations referencing REF-ROOM-005.
-
-### [ ] ROOM-502: Write developer guide & troubleshooting [2 pts]
-- Expand README with quickstart, token prefix rules, cursor requirements.
-- Document known limitations (overlapping zones, terminal compatibility, unicode caveats).
-- Capture follow-up research topics in CONTINUE.md for next session.
+### [ ] ROOM-606: Align workshops with runtime [2 pts]
+- Rework `chat_workshop` to run on `RoomRuntime` with token stream compliance.
+- Promote slash command/preferences logic into reusable plugins/adapters.
+- Document usage in README or dedicated tutorials.
 
 ---
 
@@ -77,5 +51,3 @@
 - [x] Complete
 
 (Use checklist updates alongside commits to reflect progress.)
-
-cargo run --example chat_demo --manifest-path room/Cargo.toml

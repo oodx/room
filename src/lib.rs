@@ -9,6 +9,7 @@ pub mod geometry;
 pub mod layout;
 pub mod registry;
 pub mod render;
+pub mod runtime;
 pub mod tokens;
 pub mod width;
 pub mod zone;
@@ -18,5 +19,8 @@ pub use geometry::{Rect, Size};
 pub use layout::{Constraint, Direction, LayoutNode, LayoutTree};
 pub use registry::{ZoneContent, ZoneId, ZoneRegistry};
 pub use render::{AnsiRenderer, RendererSettings};
+pub use runtime::{
+    EventFlow, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent,
+};
 pub use tokens::{ZoneTokenRouter, ZoneTokenUpdate};
 pub use width::display_width;
