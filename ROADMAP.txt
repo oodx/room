@@ -1,5 +1,7 @@
 # Room Roadmap (High-Level)
 
+
+
 ## Phase 1 – Layout Engine MVP (Complete)
 - Constraint solver, zone registry, ANSI renderer.
 - Chat demo showcasing selective updates and footer input.
