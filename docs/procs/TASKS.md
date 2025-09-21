@@ -116,7 +116,7 @@
 - Implement `ScreenManager` with registration, activation, and lifecycle notifications.
 - Wire manager into `RoomRuntime` event dispatch/render pipelines with feature flag or config toggle.
 - Add smoke tests covering screen switching and layout swaps.
-- Legacy strategy landed and `chat_demo`, `audit_demo`, `boxy_dashboard_runtime`, `control_room`, and `runtime_first_paint` now activate the manager on startup; migrate remaining demos and add focused tests before closing.
+- Legacy strategy landed and `chat_demo`, `audit_demo`, `boxy_dashboard_runtime`, `control_room`, `runtime_first_paint`, `bootstrap_helper`, and `workshop_room_bootstrap` now activate the manager on startup; migrate remaining demos and add focused tests before closing.
 
 ### [ ] SCREEN-103: Global zone strategy trait + default implementation [3 pts]
 - Define `GlobalZoneStrategy` trait (layout provisioning, panel registration, event mediation).

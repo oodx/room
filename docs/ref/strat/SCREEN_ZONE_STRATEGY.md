@@ -105,7 +105,7 @@ Notes:
 2. **Incremental Adoption**
    - Update core examples (`chat_demo`, Boxy workshops) to use the manager once the legacy strategy is stable.
    - Introduce screen-aware audit/log messages to confirm switching behaviour.
-   - Current status: `chat_demo`, `audit_demo`, `boxy_dashboard_runtime`, `control_room`, and `runtime_first_paint` already activate the manager via the legacy strategy; migrate remaining demos next.
+   - Current status: `chat_demo`, `audit_demo`, `boxy_dashboard_runtime`, `control_room`, `runtime_first_paint`, `bootstrap_helper`, and `workshop_room_bootstrap` already activate the manager via the legacy strategy; migrate remaining demos next.
 3. **Documentation & Workshops**
    - Extend `workshop_room_bootstrap` or a new multi-screen workshop (SCREEN-106) to demonstrate navigation patterns.
    - Capture lessons learned back into this strategy doc and the QUICK_REF short list.

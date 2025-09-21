@@ -19,8 +19,9 @@ use crossterm::event::{KeyCode, KeyEvent};
 use room_mvp::cursor;
 use room_mvp::runtime::audit::{BootstrapAudit, RuntimeAudit, RuntimeAuditEvent};
 use room_mvp::{
-    AnsiRenderer, CliDriver, Constraint, Direction, LayoutNode, LayoutTree, Result, RoomPlugin,
-    RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent, Size,
+    AnsiRenderer, CliDriver, Constraint, Direction, LayoutNode, LayoutTree, LegacyScreenStrategy,
+    Result, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent, ScreenDefinition,
+    ScreenManager, Size,
 };
 
 const STATUS_ZONE: &str = "workshop:bootstrap.status";
@@ -40,12 +41,22 @@ fn main() -> Result<()> {
         gap: 0,
         padding: 0,
     });
+    let screen_layout = layout.clone();
 
     let renderer = AnsiRenderer::with_default();
     let mut config = RuntimeConfig::default();
     config.audit = Some(BootstrapAudit::new(Arc::new(PrintAudit)));
 
     let mut runtime = RoomRuntime::with_config(layout, renderer, Size::new(60, 6), config)?;
+
+    let mut screen_manager = ScreenManager::new();
+    screen_manager.register_screen(ScreenDefinition::new(
+        "workshop-bootstrap",
+        "Bootstrap Workshop",
+        Arc::new(move || Box::new(LegacyScreenStrategy::new(screen_layout.clone()))),
+    ));
+    runtime.set_screen_manager(screen_manager);
+    runtime.activate_screen("workshop-bootstrap")?;
     runtime.register_plugin(BootstrapWorkshop::default());
 
     println!(
