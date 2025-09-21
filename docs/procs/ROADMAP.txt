@@ -1,11 +1,9 @@
 # Room Roadmap (High-Level)
 
-
-
 ## Phase 1 – Layout Engine MVP (Complete)
 - Constraint solver, zone registry, ANSI renderer.
 - Chat demo showcasing selective updates and footer input.
-- Documentation in `docs/STRATEGY.md`; pending clean-up tracked in `BACKLOG.md`.
+- Documentation in `docs/ref/STRATEGY.md`; pending clean-up tracked in `BACKLOG.md`.
 
 ## Phase 2 – Runtime & Plugins (In Progress)
 - Build `RoomRuntime` coordinator with event loop and lifecycle hooks.
@@ -27,4 +25,3 @@
 - Long-running soak tests feeding synthetic workloads.
 - Hardening for multi-plugin coexistence and backpressure handling.
 
-(Updated 2025-09-18.)

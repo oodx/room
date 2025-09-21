@@ -1,0 +1,33 @@
+# Room Runtime Phase 2 Highlights
+
+## Default CLI Bundle
+- `default_cli_bundle` composes the standard input prompt, status bar, and
+  optional diagnostics. It exposes configuration knobs (zones, focus owner,
+  priorities) via `DefaultCliBundleConfig` and publishes shared input state
+  through `ensure_input_state` / `try_input_state` helpers.
+- Plugins can inspect `InputSharedState` to observe submission history without
+  re-implementing prompts.
+
+## Bundled Focus + Shared State Utilities
+- `ensure_focus_registry` continues to provide shared focus orchestration, now
+  used inside the bundle to keep prompt/status plugins in sync.
+- `InputSharedState` tracks submission counts + last payload for downstream
+  plugins (status bar, chat timeline, logging).
+
+## Socket Driver Stub
+- `SocketDriver` translates newline-delimited JSON events (key/resize/tick/paste)
+  into `RuntimeEvent`s using `RoomRuntime::run_scripted`. Ideal for remote test
+  harnesses or bots that cannot run a crossterm terminal.
+
+## Updated Chat Demo
+- `examples/chat_demo.rs` now consumes the default bundle + shared input state
+  instead of hand-rolled footer logic, demonstrating how domain plugins can build
+  on top of the standard prompt/status components.
+
+## Documentation & API Surface
+- New bundle exports (`default_cli_bundle`, `InputSharedState`, helpers) and
+  `SocketDriver` re-exported via `room_mvp` prelude.
+- `docs/ref/PLUGIN_API.txt` and `docs/ref/SHARED_RUNTIME_STRAT.txt` describe bundle usage,
+  diagnostics configuration, and shared input state patterns.
+- Baseline `phase2` captured via `cargo bench --bench runtime -- --save-baseline phase2`
+  with snapshots mirrored by `bin/snap_benchmarks.sh phase2`.

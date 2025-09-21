@@ -1,0 +1,27 @@
+================================================================================
+ 🚀 ROOM MVP – START HERE
+================================================================================
+
+👋 Welcome to the Room MVP runtime project.
+
+📋 Single Entry Point: Read `docs/procs/PROCESS.txt` to understand the workflow system.
+
+🎯 Quick Start (≈5 minutes)
+1. Open `docs/procs/PROCESS.txt` for the full self-hydrating workflow guide.
+2. Scan `docs/procs/CONTINUE.md` to pick up the latest session state.
+3. Review `docs/procs/SPRINT.txt` for the active iteration plan.
+4. Check `docs/procs/QUICK_REF.txt` if you just need the essentials.
+
+⚡ Ultra-Fast Start (≈30 seconds)
+→ Jump straight to `docs/procs/QUICK_REF.txt` for the current focus, blockers, and key commands.
+
+🔍 System Health Check
+→ Run `./bin/validate-docs.sh` to verify documentation integrity before or after work.
+
+📁 Process documents live exclusively in `docs/procs/`; reference material lives in `docs/ref/`; analysis artifacts are kept in `.analysis/` and `.eggs/`.
+
+🛠️ Need code context quickly?
+→ See `docs/ref/STRATEGY.md` for architecture, `docs/ref/PLUGIN_API.txt` for plugin guidance, and `docs/ref/RUNTIME_STRAT.md` for runtime flow.
+
+Stay disciplined: update `docs/procs/CONTINUE.md` and rerun the validator at the end of every session.
+================================================================================

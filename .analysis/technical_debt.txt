@@ -1,0 +1,15 @@
+# Technical Debt Snapshot – 2025-09-20
+
+Sources: `.eggs/egg.001.meta-process-implementation.txt`, `docs/procs/BACKLOG.md`, `docs/procs/TASKS.txt`
+
+## High Priority
+- ROOM-609: Socket streaming + response channel (blocked on Meteor/ASC100 protocol finalisation).
+- ROOM-603/604: Structured logging + metrics scaffolding and Criterion harness integration need completion + documentation updates.
+
+## Medium Priority
+- ROOM-611: Dependency refresh sweep for runtime crates (blake3, crossterm, serde family, unicode-width, strip-ansi-escapes).
+- ROOM-612/613: Runtime bootstrap helpers and focus defaults to improve first paint + prompt handling.
+
+## Process Debt
+- Keep `bin/validate-docs.sh` aligned with new docs as they are added or renamed; treat validator warnings as must-fix before handoff.
+- Expand developer guide/troubleshooting (ROOM-502) once meta-process stabilises; integrate results into `docs/ref/`.

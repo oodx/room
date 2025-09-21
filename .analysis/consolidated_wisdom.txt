@@ -1,0 +1,9 @@
+# Consolidated Wisdom – Room MVP (2025-09-20)
+
+Source: `.eggs/egg.1.room-mvp-codebase-analysis.txt`
+
+- Room delivers a flicker-free terminal UI runtime built around constraint-based layouts, selective ANSI rendering, and a plugin-driven event loop.
+- Phase 1 (layout/renderer) is complete; Phase 2 (runtime & plugins) is partially complete with shared state helpers, CLI bundle, socket driver, logging, and metrics scaffolding.
+- Key runtime modules to know: `src/runtime/mod.rs`, `src/runtime/bundles.rs`, `src/runtime/driver`, and the layout/registry/render core modules.
+- Critical examples for behaviour and focus patterns: `examples/chat_demo.rs`, `examples/control_room.rs`, `examples/boxy_dashboard.rs`.
+- Benchmarking + observability rely on `benches/runtime.rs`, `meta/snaps/`, and logging/metrics integrations defined in `docs/ref/LOGGING_STRAT.md`.

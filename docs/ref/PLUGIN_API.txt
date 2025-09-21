@@ -1,0 +1,121 @@
+# Room Plugin API
+
+This is a quick reference for building plugins against the `RoomRuntime`. It
+covers lifecycle hooks, priorities, and reuse patterns for adapters.
+
+## Traits and Types
+- `RoomPlugin` (defined in `src/runtime/mod.rs`) is the extension point. Override
+  the hooks you need:
+  - `init(&mut self, &mut RuntimeContext)` — called once at startup. Seed zones,
+    register cursors, etc.
+  - `on_event(&mut self, &mut RuntimeContext, &RuntimeEvent)` — handle keyboard,
+    mouse, tick, resize, paste, or custom `RuntimeEvent::Raw` events. Return
+    `EventFlow::Consumed` to stop propagation when you fully own an event.
+  - `before_render/after_render` — mutate state immediately around each render
+    pass (diagnostics overlays, status bars, cursor adjustments).
+- `RuntimeContext` exposes convenience helpers: `set_zone`, `request_render`,
+  `request_exit`, `set_cursor_hint`, and `rect(&str)` to inspect layout results.
+- `RuntimeContext::shared`/`shared_init` give access to a shared state map (see
+  `docs/ref/SHARED_RUNTIME_STRAT.txt`) so plugins can collaborate without globals.
+  Convenience helpers like `ensure_focus_registry(ctx)` wrap common shared-state
+  resources (e.g. focus management).
+
+## Plugin Priorities
+- Plugins are stored in priority order; lower numbers run earlier.
+- Register with the default helper when order does not matter:
+  ```rust
+  runtime.register_plugin(MyPlugin::new());
+  ```
+  Default priority is `0`.
+- Register with an explicit priority when ordering matters:
+  ```rust
+  runtime.register_plugin_with_priority(StatusBar::new(), -10); // early
+  runtime.register_plugin_with_priority(MetricsTicker::new(), 50); // late
+  ```
+- Duplicate plugin names are rejected; make sure each plugin’s `name()` returns
+  a unique string (consider prefixing with your crate ID).
+- When registering many plugins, build a `PluginBundle` and apply it in one go:
+  ```rust
+  let bundle = PluginBundle::new()
+      .with_plugin(StatusBar::new(), -20)
+      .with_plugin(ChatInput::new(), 0)
+      .with_plugin(MetricsTicker::new(), 100);
+  runtime.register_bundle(bundle);
+  ```
+
+## Default CLI Bundle
+- `room_mvp::default_cli_bundle(DefaultCliBundleConfig::default())` wires a basic
+  input prompt, status bar, and optional diagnostics plugins. Provide the bundle
+  to a runtime before adding your domain-specific plugins:
+  ```rust
+  let mut runtime = RoomRuntime::new(layout, renderer, size)?;
+  let mut bundle_cfg = DefaultCliBundleConfig::default();
+  bundle_cfg.hints_zone = Some("app:chrome.hints".into());
+  runtime.register_bundle(default_cli_bundle(bundle_cfg));
+  runtime.register_plugin(ChatTimeline::new());
+  ```
+- Configure logging by supplying a `DiagnosticsConfig` with a `Logger` and
+  optional `DiagnosticsMetricsConfig` when you need structured logs or metrics
+  snapshots out of the box.
+
+## Lifecycle Logging
+- The runtime now logs `plugin_initialized` events (with priority) and includes
+  the plugin that consumes an event when `EventFlow::Consumed` bubbles up.
+- Use the feature-gated logger/metrics integration through `RuntimeConfig` or
+  by registering the built-in diagnostics plugins (see below).
+
+## Diagnostics Plugins
+- Available in `room_mvp::runtime::diagnostics`:
+  - `LifecycleLoggerPlugin` — structured logs for input events, focus changes,
+    and resizes (configurable per event type).
+  - `MetricsSnapshotPlugin` — periodically snapshots `RuntimeMetrics` via the
+    logging facade.
+- Register them early/late by priority so they observe the right state:
+  ```rust
+  let mut runtime = RoomRuntime::new(layout, renderer, size)?;
+  let logger = Logger::new(NullSink::default());
+  runtime.register_plugin_with_priority(
+      LifecycleLoggerPlugin::new(logger.clone()).log_keys(false),
+      -100,
+  );
+  runtime.register_plugin_with_priority(
+      MetricsSnapshotPlugin::new(logger.clone(), metrics_handle),
+      100,
+  );
+  ```
+
+## Building New Plugins
+1. Decide when your plugin needs to run. Input handlers usually run early so
+   they can consume keys before other plugins. Post-processing overlays can run
+   late.
+2. Store all plugin state inside the plugin struct. The runtime will keep the
+   plugin boxed and reuse it across frames.
+3. Use the context helper methods to push zone updates in batches; avoid writing
+   directly to the registry.
+4. Keep string allocations outside hot paths where possible (e.g. reuse buffers,
+   format lines once per tick). Criterion benches help confirm you are not
+   regressing performance.
+
+## Adapters and Drivers
+- Drivers (CLI, sockets, scripted tests) should live outside the runtime. They
+  translate external events into `RuntimeEvent`s and call `run()` or
+  `run_scripted()`.
+- For scripted or headless environments, build a list of events and feed them to
+  `run_scripted` so plugins can be exercised without a real terminal.
+- Use `CliDriver` from `room_mvp::runtime::driver::cli` when you need a ready-made
+  terminal wrapper (raw mode, alternate screen) around a `RoomRuntime`.
+- Use `SocketDriver` when you want to accept newline-delimited JSON events over
+  TCP. This is handy for remote harnesses that cannot spawn a terminal; the
+  driver replays events through `RoomRuntime::run_scripted` and streams ANSI
+  output back to the client connection.
+
+## Testing Plugins
+- Unit test complex logic directly (most plugins can be plain structs without
+  `Arc`/`Mutex`).
+- For integration tests, use `RoomRuntime::run_scripted` with a short script and
+  inspect the registry or emitted logs to confirm behaviour.
+
+## Future Enhancements (tracked)
+- Shared resource map across plugins (so multiple plugins can coordinate focus
+  state without a global singleton).
+- Adapter crates for socket/async drivers that map to `RuntimeEvent` streams.

@@ -1,16 +1,16 @@
 use std::collections::VecDeque;
 use std::io;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use room_mvp::logging::{LogEvent, LogSink};
 use room_mvp::runtime::diagnostics::{LifecycleLoggerPlugin, MetricsSnapshotPlugin};
 use room_mvp::{
-    AnsiRenderer, Constraint, Direction, EventFlow, LayoutNode, LayoutTree, LogLevel, Logger,
-    LoggingResult, Rect, Result, RoomPlugin, RoomRuntime, RuntimeContext, RuntimeEvent, Size,
-    display_width,
+    AnsiRenderer, Constraint, Direction, EventFlow, FocusRegistry, LayoutNode, LayoutTree, Logger,
+    LoggingResult, PluginBundle, Rect, Result, RoomPlugin, RoomRuntime, RuntimeContext,
+    RuntimeEvent, Size, display_width, ensure_focus_registry,
 };
 
 #[derive(Clone, Default)]
@@ -28,31 +28,24 @@ const SIDEBAR_ZONE: &str = "app:chat.sidebar";
 const STATUS_ZONE: &str = "app:chat.footer.status";
 const INPUT_ZONE: &str = "app:chat.footer.input";
 
-fn scripted_events() -> Vec<RuntimeEvent> {
-    vec![
-        RuntimeEvent::Resize(Size::new(100, 30)),
-        RuntimeEvent::Key(KeyEvent::new(KeyCode::Char('H'), KeyModifiers::NONE)),
-        RuntimeEvent::Key(KeyEvent::new(KeyCode::Char('i'), KeyModifiers::NONE)),
-        RuntimeEvent::Key(KeyEvent::new(KeyCode::Char('!'), KeyModifiers::NONE)),
-        RuntimeEvent::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)),
-        RuntimeEvent::Tick {
-            elapsed: Duration::from_millis(500),
-        },
-        RuntimeEvent::Key(KeyEvent::new(KeyCode::Char('O'), KeyModifiers::NONE)),
-        RuntimeEvent::Key(KeyEvent::new(KeyCode::Char('o'), KeyModifiers::NONE)),
-        RuntimeEvent::Key(KeyEvent::new(KeyCode::Char('k'), KeyModifiers::NONE)),
-        RuntimeEvent::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)),
-        RuntimeEvent::Tick {
-            elapsed: Duration::from_millis(600),
-        },
-    ]
-}
-
 fn runtime_chat_script(c: &mut Criterion) {
     let script = scripted_events();
     c.bench_function("runtime_chat_script", |b| {
         b.iter(|| {
             let mut runtime = build_runtime().expect("runtime");
+            let mut sink = io::sink();
+            runtime
+                .run_scripted(&mut sink, black_box(script.clone()))
+                .expect("scripted run");
+        });
+    });
+}
+
+fn runtime_focus_script(c: &mut Criterion) {
+    let script = focus_events();
+    c.bench_function("runtime_focus_script", |b| {
+        b.iter(|| {
+            let mut runtime = build_focus_runtime().expect("runtime");
             let mut sink = io::sink();
             runtime
                 .run_scripted(&mut sink, black_box(script.clone()))
@@ -75,24 +68,104 @@ fn build_runtime() -> Result<RoomRuntime> {
         config.metrics_handle().expect("metrics handle")
     };
 
-    runtime.register_plugin(
-        LifecycleLoggerPlugin::new(logger.clone())
-            .log_mouse(false)
-            .log_ticks(false)
-            .log_raw(false)
-            .log_keys(false),
-    );
-
-    runtime.register_plugin(
-        MetricsSnapshotPlugin::new(logger.clone(), metrics_handle.clone())
-            .with_interval(Duration::from_millis(250)),
-    );
-
-    runtime.register_plugin(BenchChatPlugin::new());
+    PluginBundle::new()
+        .with_plugin(
+            LifecycleLoggerPlugin::new(logger.clone())
+                .log_mouse(false)
+                .log_ticks(false)
+                .log_raw(false)
+                .log_keys(false),
+            -100,
+        )
+        .with_plugin(
+            MetricsSnapshotPlugin::new(logger.clone(), metrics_handle.clone())
+                .with_interval(Duration::from_millis(250)),
+            100,
+        )
+        .with_plugin(BenchChatPlugin::new(), 0)
+        .register_into(&mut runtime);
 
     Ok(runtime)
 }
 
+fn build_focus_runtime() -> Result<RoomRuntime> {
+    let layout = build_layout();
+    let renderer = AnsiRenderer::with_default();
+    let mut runtime = RoomRuntime::new(layout, renderer, Size::new(100, 30))?;
+
+    let logger = Logger::new(NullSink::default());
+    let metrics_handle = {
+        let config = runtime.config_mut();
+        config.logger = Some(logger.clone());
+        config.metrics_interval = Duration::from_millis(0);
+        config.enable_metrics();
+        config.metrics_handle().expect("metrics handle")
+    };
+
+    PluginBundle::new()
+        .with_plugin(
+            LifecycleLoggerPlugin::new(logger.clone())
+                .log_mouse(false)
+                .log_ticks(false)
+                .log_raw(false)
+                .log_keys(false),
+            -100,
+        )
+        .with_plugin(
+            MetricsSnapshotPlugin::new(logger.clone(), metrics_handle.clone())
+                .with_interval(Duration::from_millis(250)),
+            100,
+        )
+        .with_plugin(FocusStressPlugin::new(), 0)
+        .register_into(&mut runtime);
+
+    Ok(runtime)
+}
+
+fn scripted_events() -> Vec<RuntimeEvent> {
+    vec![
+        RuntimeEvent::Resize(Size::new(100, 30)),
+        RuntimeEvent::Key(KeyEvent::new(KeyCode::Char('H'), KeyModifiers::NONE)),
+        RuntimeEvent::Key(KeyEvent::new(KeyCode::Char('i'), KeyModifiers::NONE)),
+        RuntimeEvent::Key(KeyEvent::new(KeyCode::Char('!'), KeyModifiers::NONE)),
+        RuntimeEvent::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)),
+        RuntimeEvent::Tick {
+            elapsed: Duration::from_millis(500),
+        },
+        RuntimeEvent::Key(KeyEvent::new(KeyCode::Char('O'), KeyModifiers::NONE)),
+        RuntimeEvent::Key(KeyEvent::new(KeyCode::Char('o'), KeyModifiers::NONE)),
+        RuntimeEvent::Key(KeyEvent::new(KeyCode::Char('k'), KeyModifiers::NONE)),
+        RuntimeEvent::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)),
+        RuntimeEvent::Tick {
+            elapsed: Duration::from_millis(600),
+        },
+    ]
+}
+
+fn focus_events() -> Vec<RuntimeEvent> {
+    let mut events = Vec::with_capacity(200);
+    events.push(RuntimeEvent::Resize(Size::new(100, 30)));
+    for _ in 0..50 {
+        events.push(RuntimeEvent::Key(KeyEvent::new(
+            KeyCode::Char('1'),
+            KeyModifiers::NONE,
+        )));
+        events.push(RuntimeEvent::Key(KeyEvent::new(
+            KeyCode::Char('2'),
+            KeyModifiers::NONE,
+        )));
+        events.push(RuntimeEvent::Key(KeyEvent::new(
+            KeyCode::Char('3'),
+            KeyModifiers::NONE,
+        )));
+    }
+    events.push(RuntimeEvent::Tick {
+        elapsed: Duration::from_millis(16),
+    });
+    events
+}
+
+#[derive(Clone)]
 struct BenchChatPlugin {
     participants: Vec<&'static str>,
     messages: Vec<String>,
@@ -193,7 +266,7 @@ impl RoomPlugin for BenchChatPlugin {
     ) -> Result<EventFlow> {
         match event {
             RuntimeEvent::Key(key) => {
-                if key.kind != crossterm::event::KeyEventKind::Press {
+                if key.kind != KeyEventKind::Press {
                     return Ok(EventFlow::Continue);
                 }
 
@@ -249,6 +322,58 @@ impl RoomPlugin for BenchChatPlugin {
     }
 }
 
+struct FocusStressPlugin {
+    focus: Option<Arc<FocusRegistry>>,
+}
+
+impl FocusStressPlugin {
+    fn new() -> Self {
+        Self { focus: None }
+    }
+
+    fn update_focus(&mut self, ctx: &mut RuntimeContext<'_>, zone: &str) {
+        if let Some(registry) = &self.focus {
+            registry.set_focus("bench.focus", zone);
+        }
+        ctx.set_zone(STATUS_ZONE, format!("focus: {zone}"));
+        ctx.set_zone(TIMELINE_ZONE, format!("active zone -> {zone}"));
+    }
+}
+
+impl RoomPlugin for FocusStressPlugin {
+    fn name(&self) -> &str {
+        "bench.focus"
+    }
+
+    fn init(&mut self, ctx: &mut RuntimeContext<'_>) -> Result<()> {
+        let focus = ensure_focus_registry(ctx).expect("focus registry available");
+        self.focus = Some(focus);
+        ctx.set_zone(HEADER_ZONE, "Room Runtime Focus Bench".to_string());
+        ctx.set_zone(SIDEBAR_ZONE, "zones: timeline/input/status".to_string());
+        ctx.set_zone(STATUS_ZONE, "focus: none".to_string());
+        Ok(())
+    }
+
+    fn on_event(
+        &mut self,
+        ctx: &mut RuntimeContext<'_>,
+        event: &RuntimeEvent,
+    ) -> Result<EventFlow> {
+        if let RuntimeEvent::Key(key) = event {
+            if key.kind != KeyEventKind::Press {
+                return Ok(EventFlow::Continue);
+            }
+            match key.code {
+                KeyCode::Char('1') => self.update_focus(ctx, TIMELINE_ZONE),
+                KeyCode::Char('2') => self.update_focus(ctx, INPUT_ZONE),
+                KeyCode::Char('3') => self.update_focus(ctx, STATUS_ZONE),
+                _ => {}
+            }
+        }
+        Ok(EventFlow::Continue)
+    }
+}
+
 fn build_layout() -> LayoutTree {
     LayoutTree::new(LayoutNode {
         id: "app:root".into(),
@@ -285,5 +410,5 @@ fn build_layout() -> LayoutTree {
     })
 }
 
-criterion_group!(benches, runtime_chat_script);
+criterion_group!(benches, runtime_chat_script, runtime_focus_script);
 criterion_main!(benches);

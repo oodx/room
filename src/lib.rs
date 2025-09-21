@@ -23,9 +23,23 @@ pub use logging::{LogEvent, LogFields, LogLevel, Logger, LoggingError, LoggingRe
 pub use metrics::{MetricSnapshot, RuntimeMetrics};
 pub use registry::{ZoneContent, ZoneId, ZoneRegistry};
 pub use render::{AnsiRenderer, RendererSettings};
+pub use runtime::audit::{
+    NullRuntimeAudit, RuntimeAudit, RuntimeAuditEvent, RuntimeAuditEventBuilder, RuntimeAuditStage,
+};
+pub use runtime::bundles::{
+    DEFAULT_HINTS_ZONE, DEFAULT_INPUT_ZONE, DEFAULT_STATUS_ZONE, DefaultCliBundleConfig,
+    DiagnosticsConfig, DiagnosticsMetricsConfig, InputSharedState, SharedInputState,
+    default_cli_bundle, ensure_input_state, try_input_state,
+};
 pub use runtime::diagnostics::{LifecycleLoggerPlugin, MetricsSnapshotPlugin};
+pub use runtime::driver::cli::{CliDriver, CliDriverError, DriverResult};
+pub use runtime::driver::socket::{SocketDriver, SocketDriverError};
+pub use runtime::focus::{
+    FocusController, FocusEntry, FocusRegistry, SharedFocus, ensure_focus_registry,
+};
+pub use runtime::shared_state::{SharedState, SharedStateError};
 pub use runtime::{
-    EventFlow, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent,
+    EventFlow, PluginBundle, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent,
 };
 pub use tokens::{ZoneTokenRouter, ZoneTokenUpdate};
 pub use width::display_width;

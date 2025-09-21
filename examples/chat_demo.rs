@@ -1,14 +1,11 @@
 use std::collections::VecDeque;
-use std::io;
 use std::time::Duration;
 
-use crossterm::ExecutableCommand;
-use crossterm::cursor;
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
-use crossterm::terminal::{self, Clear, ClearType};
 use room_mvp::{
-    AnsiRenderer, Constraint, Direction, EventFlow, LayoutNode, LayoutTree, Rect, Result,
-    RoomPlugin, RoomRuntime, RuntimeContext, RuntimeEvent, Size, display_width,
+    AnsiRenderer, CliDriver, Constraint, DefaultCliBundleConfig, Direction, EventFlow, LayoutNode,
+    LayoutTree, Rect, Result, RoomPlugin, RoomRuntime, RuntimeContext, RuntimeEvent, Size,
+    default_cli_bundle, ensure_input_state, try_input_state,
 };
 
 const HEADER_ZONE: &str = "app:chat.header";
@@ -17,35 +14,27 @@ const SIDEBAR_ZONE: &str = "app:chat.sidebar";
 const STATUS_ZONE: &str = "app:chat.footer.status";
 const INPUT_ZONE: &str = "app:chat.footer.input";
 
-fn main() -> Result<()> {
-    let mut stdout = io::stdout();
-    terminal::enable_raw_mode()?;
-    stdout
-        .execute(terminal::EnterAlternateScreen)?
-        .execute(cursor::Hide)?
-        .execute(Clear(ClearType::All))?;
-
-    let (width, height) = terminal::size()?;
+fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let layout = build_layout();
     let renderer = AnsiRenderer::with_default();
-    let mut runtime = RoomRuntime::new(layout, renderer, Size::new(width, height))?;
+    let mut runtime = RoomRuntime::new(layout, renderer, Size::new(80, 24))?;
+
+    let mut bundle_cfg = DefaultCliBundleConfig::default();
+    bundle_cfg.input_zone = INPUT_ZONE.to_string();
+    bundle_cfg.status_zone = STATUS_ZONE.to_string();
+    bundle_cfg.hints_zone = None;
+    runtime.register_bundle(default_cli_bundle(bundle_cfg));
     runtime.register_plugin(ChatPlugin::new());
 
-    let result = runtime.run(&mut stdout);
-
-    stdout.execute(cursor::Show).ok();
-    stdout.execute(terminal::LeaveAlternateScreen).ok();
-    terminal::disable_raw_mode().ok();
-
-    result
+    CliDriver::new(runtime).run()?;
+    Ok(())
 }
 
 struct ChatPlugin {
     participants: Vec<&'static str>,
     messages: Vec<String>,
     scripted_replies: VecDeque<String>,
-    input_buffer: String,
-    status_message: Option<String>,
+    last_seen_submission: u64,
     bot_interval: Duration,
     bot_timer: Duration,
 }
@@ -62,8 +51,7 @@ impl ChatPlugin {
                 "Alice: Zones stay rock solid on resize.".to_string(),
                 "Bob: Footer input never jumps anymore.".to_string(),
             ]),
-            input_buffer: String::new(),
-            status_message: None,
+            last_seen_submission: 0,
             bot_interval: Duration::from_secs(6),
             bot_timer: Duration::default(),
         }
@@ -94,47 +82,24 @@ impl ChatPlugin {
             .map(|name| format!("• {}", name))
             .collect::<Vec<_>>()
             .join("\n");
-
-        let input_rect = ctx.rect(INPUT_ZONE).copied().unwrap_or(Rect::new(
-            0,
-            timeline_rect.bottom().saturating_sub(1),
-            40,
-            1,
-        ));
-        let status_rect = ctx.rect(STATUS_ZONE).copied().unwrap_or(Rect::new(
-            input_rect.x,
-            input_rect.y.saturating_add(1),
-            input_rect.width,
-            4,
-        ));
-
-        let underline_len = usize::from(status_rect.width.max(1));
-        let underline = "─".repeat(underline_len);
-        let mut status_lines = vec![underline];
-        status_lines.push("Enter to send · ESC to leave".to_string());
-        status_lines.push(self.status_message.clone().unwrap_or_default());
-        status_lines.push(String::new());
-        status_lines.truncate(status_rect.height.max(1) as usize);
-        while status_lines.len() < status_rect.height.max(1) as usize {
-            status_lines.push(String::new());
-        }
-        let status_text = status_lines.join("\n");
-
-        let input_display = format!(">{}", self.input_buffer);
-        let typed_width = display_width(&self.input_buffer) as u16;
-        let caret_base = input_rect.x.saturating_add(1);
-        let caret_limit = input_rect
-            .x
-            .saturating_add(input_rect.width.saturating_sub(1))
-            .max(caret_base);
-        let caret_x = caret_base.saturating_add(typed_width).min(caret_limit);
-
         ctx.set_zone(HEADER_ZONE, header_text);
         ctx.set_zone(TIMELINE_ZONE, timeline_text);
         ctx.set_zone(SIDEBAR_ZONE, sidebar_text);
-        ctx.set_zone(STATUS_ZONE, status_text);
-        ctx.set_zone(INPUT_ZONE, input_display);
-        ctx.set_cursor_hint(input_rect.y, caret_x);
+    }
+
+    fn sync_input(&mut self, ctx: &RuntimeContext<'_>) -> Result<bool> {
+        if let Some(shared) = try_input_state(ctx) {
+            if let Ok(state) = shared.read() {
+                if state.submission_count > self.last_seen_submission {
+                    if let Some(last) = state.last_submission.as_ref() {
+                        self.messages.push(format!("You: {}", last));
+                    }
+                    self.last_seen_submission = state.submission_count;
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
     }
 }
 
@@ -144,6 +109,7 @@ impl RoomPlugin for ChatPlugin {
     }
 
     fn init(&mut self, ctx: &mut RuntimeContext<'_>) -> Result<()> {
+        let _ = ensure_input_state(ctx);
         self.redraw(ctx);
         Ok(())
     }
@@ -154,56 +120,10 @@ impl RoomPlugin for ChatPlugin {
         event: &RuntimeEvent,
     ) -> Result<EventFlow> {
         match event {
-            RuntimeEvent::Key(key) => {
-                if key.kind != KeyEventKind::Press {
-                    return Ok(EventFlow::Continue);
-                }
-
-                let mut flow = EventFlow::Continue;
-                let mut state_changed = false;
-
-                match key.code {
-                    KeyCode::Esc => {
-                        ctx.request_exit();
-                        flow = EventFlow::Consumed;
-                    }
-                    KeyCode::Enter => {
-                        let trimmed = self.input_buffer.trim();
-                        if !trimmed.is_empty() {
-                            let entry = format!("You: {}", trimmed);
-                            self.messages.push(entry);
-                            self.input_buffer.clear();
-                            if let Some(reply) = self.scripted_replies.pop_front() {
-                                self.messages.push(reply);
-                            }
-                            self.status_message = Some("Message sent".to_string());
-                            state_changed = true;
-                        }
-                    }
-                    KeyCode::Backspace => {
-                        if self.input_buffer.pop().is_some() {
-                            state_changed = true;
-                        }
-                    }
-                    KeyCode::Char(ch) => {
-                        if !key.modifiers.contains(KeyModifiers::CONTROL) {
-                            self.input_buffer.push(ch);
-                            state_changed = true;
-                        }
-                    }
-                    _ => {}
-                }
-
-                if state_changed || matches!(flow, EventFlow::Consumed) {
-                    self.redraw(ctx);
-                }
-
-                Ok(flow)
-            }
-            RuntimeEvent::Paste(data) => {
-                if !data.is_empty() {
-                    self.input_buffer.push_str(data);
-                    self.redraw(ctx);
+            RuntimeEvent::Key(key) if key.kind == KeyEventKind::Press => {
+                if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+                    ctx.request_exit();
+                    return Ok(EventFlow::Consumed);
                 }
                 Ok(EventFlow::Continue)
             }
@@ -212,22 +132,34 @@ impl RoomPlugin for ChatPlugin {
                 Ok(EventFlow::Continue)
             }
             RuntimeEvent::Tick { elapsed } => {
+                let mut state_changed = self.sync_input(ctx)?;
                 self.bot_timer += *elapsed;
                 if self.bot_timer >= self.bot_interval {
                     self.bot_timer = Duration::default();
                     if let Some(reply) = self.scripted_replies.pop_front() {
                         self.messages.push(reply);
-                        self.status_message = Some("Teammate replied".to_string());
-                        self.redraw(ctx);
+                        state_changed = true;
                     }
+                }
+                if state_changed {
+                    self.redraw(ctx);
                 }
                 Ok(EventFlow::Continue)
             }
-            RuntimeEvent::Mouse(_) | RuntimeEvent::FocusGained | RuntimeEvent::FocusLost => {
-                Ok(EventFlow::Continue)
-            }
-            RuntimeEvent::Raw(_) => Ok(EventFlow::Continue),
+            RuntimeEvent::Key(_) => Ok(EventFlow::Continue),
+            RuntimeEvent::Mouse(_)
+            | RuntimeEvent::FocusGained
+            | RuntimeEvent::FocusLost
+            | RuntimeEvent::Paste(_)
+            | RuntimeEvent::Raw(_) => Ok(EventFlow::Continue),
         }
+    }
+
+    fn before_render(&mut self, ctx: &mut RuntimeContext<'_>) -> Result<()> {
+        if self.sync_input(ctx)? {
+            self.redraw(ctx);
+        }
+        Ok(())
     }
 }
 

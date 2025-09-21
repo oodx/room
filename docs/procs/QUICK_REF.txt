@@ -1,0 +1,33 @@
+🎯 CURRENT FOCUS: Harden the new meta-process layout and finish normalising Room documentation references.
+
+📊 PROJECT STATUS
+- ✅ Layout engine + runtime plugins (Phase 1 complete, Phase 2 partially delivered)
+- ✅ Meta-process scaffold landed (directory migration, START/PROCESS/QUICK_REF seeded)
+- ⬆️ Next major push: Observability & declarative layout groundwork once doc hygiene is stable
+
+🚨 CRITICAL CONTEXT
+- Validator now targets Room docs; treat any new warnings as blockers for handoff.
+- MVP boundary unchanged: prioritise runtime stability + documentation discipline before new feature work.
+- Active Phase: Runtime & Plugin Phase 2 polish with process enforcement.
+
+📋 ACTIVE TASKS (see docs/procs/SPRINT.txt for detail)
+1. Sweep remaining docs/examples for legacy `docs/` references and update as needed. ✅
+2. Track Boxy workshop defects via WORKSHOP-201A and plan fixes; new grid workshop (202) is ready.
+3. Keep CONTINUE/QUICK_REF aligned whenever sprint priorities shift.
+4. Prepare acceptance notes so meta-process work can be moved into DONE once the validator remains green.
+
+🏗️ ARCHITECTURE SNAPSHOT
+- Primary modules: `src/runtime`, `src/layout`, `src/render`, `src/registry`
+- Key examples: `examples/chat_demo.rs`, `examples/control_room.rs`
+- Benchmarks: `benches/runtime.rs` with baseline `meta/snaps/runtime_*`
+
+🛠️ COMMANDS
+- Tests: `cargo test --manifest-path Cargo.toml`
+- Bench baseline replay: `cargo bench --bench runtime -- --baseline phase2`
+- Docs health: `./bin/validate-docs.sh`
+- Chat demo smoke: `cargo run --example chat_demo`
+
+⚡ IMMEDIATE NEXT STEPS
+1. Fold validator maintenance tips into `docs/procs/PROCESS.txt` now that the sweep closed.
+2. Start outlining WORKSHOP-301 (first paint) in code + docs once WORKSHOP-201A is resolved.
+3. Continue logging completed sessions in DONE to keep history tidy.
