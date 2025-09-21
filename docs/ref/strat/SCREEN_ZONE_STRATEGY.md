@@ -15,19 +15,41 @@ full-screen layouts that share the same runtime instance.
 
 ## Flow Overview
 
+### Activation & Event Lifecycle
+
+```
+┌─────────────────────────────┐
+│  Application / App Builder  │
+└──────────────┬──────────────┘
+               │ register screens
+┌──────────────▼──────────────┐
+│       ScreenManager         │
+└──────────────┬──────────────┘
+               │ activate(initial)
+┌──────────────▼──────────────┐     bootstrap()      ┌──────────────────────┐
+│    GlobalZoneStrategy       │◄────────────────────►│     RoomRuntime      │
+└──────────────┬──────────────┘                      └──────────┬───────────┘
+               │ register_panels()                                │ render()
+               ▼                                                 ▼
+        Panels / Plugins  ◄────────────── events ────────────── Runtime events
+
+Legend: solid lines = control flow, dashed = event propagation.
+```
+
 1. Application registers one or more `ScreenDefinition`s with the `ScreenManager`.
 2. At runtime start, the manager activates the initial screen:
    - Instantiates the configured `GlobalZoneStrategy`.
-   - Hands its layout tree to the runtime.
+   - Hands its layout tree to the runtime (swapping registry layout + renderer buffers).
    - Registers child panels/plugins via the global zone.
-   - Emits lifecycle callbacks.
+   - Emits lifecycle callbacks in order: `WillAppear` → `DidAppear`.
 3. Runtime events flow:
    - `RoomRuntime` → `ScreenManager` → active `GlobalZone`.
-   - The global zone can handle events directly, translate them, or delegate to panels.
-   - Panels may bubble events back up (e.g., navigation requests) using an agreed protocol.
+   - The global zone may handle events, translate them, or delegate to panels.
+   - Panels can bubble responses back up (navigation, notifications) via a shared protocol.
 4. Switching screens:
-   - Manager notifies current screen (`will_disappear`), tears down its panels if needed, swaps in the new layout/zone, then triggers `did_appear`.
-   - Registry/renderer refresh to reflect the new screen’s zone set.
+   - Manager emits `WillDisappear` to current screen, flushes dirty state, and performs panel teardown if required.
+   - Activates the new screen (steps from #2) and emits `DidDisappear` for the old screen once swap completes.
+   - Renderer performs a single render batch for the new layout to maintain first-frame smoothness.
 
 ## Traits & APIs (MVP)
 
@@ -67,12 +89,29 @@ Notes:
 - Reuse `SharedState` for panel-level sharing.
 - Provide a thin adapter `ScreenState` that namespaces keys per screen so switching does not clobber data.
 - Global zone strategies can opt into cross-screen state by using a shared key prefix (e.g., `app:global`).
+- Migration note: existing plugins can continue using `SharedState`; adopting `ScreenState` is opt-in. Legacy screens can attach to a default namespace to avoid behavioral changes.
 
 ## Extensibility Hooks
 
 - **Global Zone Formats**: implement the strategy trait for patterns such as chat, file browser, multi-pane dashboards.
 - **Navigation**: expose a `ScreenNavigator` interface so global zones or panels can request screen switches (eg. `navigator.activate("settings")`).
 - **Future Work**: stack-based navigation, transitions/animations, nested screens, panel layout nesting.
+
+## Migration & Rollout Plan
+
+1. **Passive Introduction**
+   - Gate the `ScreenManager` behind a feature flag or runtime config so existing single-screen apps run unchanged.
+   - Provide a `LegacyScreenStrategy` that simply mounts the current layout/panels to ease migration.
+2. **Incremental Adoption**
+   - Update core examples (`chat_demo`, Boxy workshops) to use the manager once the legacy strategy is stable.
+   - Introduce screen-aware audit/log messages to confirm switching behaviour.
+   - Current status: `chat_demo`, `audit_demo`, and `boxy_dashboard_runtime` already activate the manager via the legacy strategy; migrate remaining demos next.
+3. **Documentation & Workshops**
+   - Extend `workshop_room_bootstrap` or a new multi-screen workshop (SCREEN-106) to demonstrate navigation patterns.
+   - Capture lessons learned back into this strategy doc and the QUICK_REF short list.
+4. **Cleanup**
+   - Once all first-party demos adopt screens, retire the legacy strategy and remove the feature flag.
+   - Update validator checks to expect the new directory structure (`docs/ref/strat/`).
 
 ## Known Open Questions / Backlog
 

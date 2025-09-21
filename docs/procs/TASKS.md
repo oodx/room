@@ -108,14 +108,15 @@
 - Ensure bundles/examples can mark prompt zones for immediate focus without manual wiring.
 - Capture best practices for focus transitions in `docs/ref/CORE_PLUGIN_STRATEGY.md`.
 
--### [ ] SCREEN-101: Screen/global zone architecture spec [2 pts]
-- Finalize the Screen + GlobalZone strategy doc (`docs/ref/strat/SCREEN_ZONE_STRATEGY.md`) with lifecycle diagrams and update plan.
-- Identify integration points with `RoomRuntime` and outline migration steps for existing demos.
+	-### [x] SCREEN-101: Screen/global zone architecture spec [2 pts]
+	- Finalize the Screen + GlobalZone strategy doc (`docs/ref/strat/SCREEN_ZONE_STRATEGY.md`) with lifecycle diagrams and update plan. ✅
+	- Identify integration points with `RoomRuntime` and outline migration steps for existing demos. ✅
 
-### [ ] SCREEN-102: Screen manager implementation [5 pts]
+### [~] SCREEN-102: Screen manager implementation [5 pts]
 - Implement `ScreenManager` with registration, activation, and lifecycle notifications.
 - Wire manager into `RoomRuntime` event dispatch/render pipelines with feature flag or config toggle.
 - Add smoke tests covering screen switching and layout swaps.
+- Legacy strategy landed and `chat_demo`, `audit_demo`, and `boxy_dashboard_runtime` now activate the manager on startup; migrate remaining demos and add focused tests before closing.
 
 ### [ ] SCREEN-103: Global zone strategy trait + default implementation [3 pts]
 - Define `GlobalZoneStrategy` trait (layout provisioning, panel registration, event mediation).

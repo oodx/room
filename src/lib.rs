@@ -39,6 +39,10 @@ pub use runtime::driver::socket::{SocketDriver, SocketDriverError};
 pub use runtime::focus::{
     FocusController, FocusEntry, FocusRegistry, SharedFocus, ensure_focus_registry,
 };
+pub use runtime::screens::{
+    GlobalZoneStrategy, LegacyScreenStrategy, ScreenActivation, ScreenDefinition, ScreenFactory,
+    ScreenLifecycleEvent, ScreenManager, ScreenMetadata,
+};
 pub use runtime::shared_state::{SharedState, SharedStateError};
 pub use runtime::{
     EventFlow, PluginBundle, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent,

@@ -16,6 +16,7 @@
 //!
 //! See `docs/ref/workshops/workshop_boxy_dashboard_runtime.md` for the full workshop flow.
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use boxy::{
@@ -24,8 +25,8 @@ use boxy::{
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use room_mvp::{
     AnsiRenderer, CliDriver, Constraint, Direction, EventFlow, FocusController, LayoutError,
-    LayoutNode, LayoutTree, Result, RoomPlugin, RoomRuntime, RuntimeContext, RuntimeEvent,
-    SharedStateError, Size, ensure_focus_registry,
+    LayoutNode, LayoutTree, LegacyScreenStrategy, Result, RoomPlugin, RoomRuntime, RuntimeContext,
+    RuntimeEvent, ScreenDefinition, ScreenManager, SharedStateError, Size, ensure_focus_registry,
 };
 use rsb::visual::glyphs::{glyph, glyph_enable};
 
@@ -44,8 +45,19 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     glyph_enable();
 
     let layout = build_layout();
+    let screen_layout = layout.clone();
     let renderer = AnsiRenderer::with_default();
     let mut runtime = RoomRuntime::new(layout, renderer, Size::new(120, 34))?;
+
+    let mut screen_manager = ScreenManager::new();
+    screen_manager.register_screen(ScreenDefinition::new(
+        "dashboard",
+        "Boxy Dashboard",
+        Arc::new(move || Box::new(LegacyScreenStrategy::new(screen_layout.clone()))),
+    ));
+    runtime.set_screen_manager(screen_manager);
+    runtime.activate_screen("dashboard")?;
+
     runtime.config_mut().tick_interval = Duration::from_secs(2);
     runtime.register_plugin(BoxyDashboardPlugin::new());
 

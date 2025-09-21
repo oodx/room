@@ -7,9 +7,11 @@ use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 use serde_json::json;
 
 use self::audit::{NullRuntimeAudit, RuntimeAudit, RuntimeAuditEventBuilder, RuntimeAuditStage};
+use self::screens::ScreenManager;
 use crate::logging::{event_with_fields, json_kv};
 use crate::{
-    AnsiRenderer, LayoutTree, LogLevel, Logger, Rect, Result, RuntimeMetrics, Size, ZoneRegistry,
+    AnsiRenderer, LayoutError, LayoutTree, LogLevel, Logger, Rect, Result, RuntimeMetrics, Size,
+    ZoneRegistry,
 };
 
 pub mod audit;
@@ -17,6 +19,7 @@ pub mod bundles;
 pub mod diagnostics;
 pub mod driver;
 pub mod focus;
+pub mod screens;
 pub mod shared_state;
 
 pub struct PluginBundle {
@@ -274,6 +277,8 @@ pub struct RoomRuntime {
     last_metrics_emit: Option<Instant>,
     shared_state: shared_state::SharedState,
     audit: Arc<dyn RuntimeAudit>,
+    current_size: Size,
+    screen_manager: Option<ScreenManager>,
 }
 
 impl RoomRuntime {
@@ -310,6 +315,8 @@ impl RoomRuntime {
             last_metrics_emit: None,
             shared_state: shared_state::SharedState::new(),
             audit,
+            current_size: initial_size,
+            screen_manager: None,
         };
         runtime.audit_record(RuntimeAuditStage::RuntimeConstructed, []);
         Ok(runtime)
@@ -317,6 +324,28 @@ impl RoomRuntime {
 
     pub fn config_mut(&mut self) -> &mut RuntimeConfig {
         &mut self.config
+    }
+
+    /// Attach a screen manager so callers can orchestrate multi-screen flows.
+    pub fn set_screen_manager(&mut self, manager: ScreenManager) {
+        self.screen_manager = Some(manager);
+    }
+
+    /// Access the installed screen manager (mutable), if present.
+    pub fn screen_manager_mut(&mut self) -> Option<&mut ScreenManager> {
+        self.screen_manager.as_mut()
+    }
+
+    /// Activate a screen by id using the installed screen manager.
+    pub fn activate_screen(&mut self, screen_id: &str) -> Result<()> {
+        let mut manager = self
+            .screen_manager
+            .take()
+            .ok_or_else(|| LayoutError::Backend("screen manager not installed".to_string()))?;
+        let activation = manager.activate(screen_id)?;
+        let result = manager.finish_activation(self, activation);
+        self.screen_manager = Some(manager);
+        result
     }
 
     pub fn register_plugin<P>(&mut self, plugin: P)
@@ -451,6 +480,37 @@ impl RoomRuntime {
     fn dispatch_event(&mut self, event: RuntimeEvent) -> Result<()> {
         let mut consumed = false;
         let mut consumed_by: Option<String> = None;
+
+        if let Some(manager) = self.screen_manager.as_mut() {
+            let mut ctx = RuntimeContext::new(&self.rects, &self.shared_state);
+            let flow = manager.handle_event(&mut ctx, &event)?;
+            let outcome = ctx.into_outcome();
+            self.apply_outcome(outcome)?;
+            if matches!(flow, EventFlow::Consumed) {
+                consumed = true;
+                consumed_by = Some("screen_manager".to_string());
+            }
+        }
+
+        if consumed {
+            self.record_event_metric();
+            self.log_runtime_event(
+                LogLevel::Debug,
+                "event_dispatched",
+                [
+                    json_kv("event", json!(Self::describe_event(&event))),
+                    json_kv("consumed", json!(true)),
+                    json_kv("consumed_by", json!("screen_manager")),
+                ],
+            );
+            let mut builder = RuntimeAuditEventBuilder::new(RuntimeAuditStage::EventDispatched);
+            builder.detail("event", json!(Self::describe_event(&event)));
+            builder.detail("consumed", json!(true));
+            builder.detail("consumed_by", json!("screen_manager"));
+            self.audit_record_event(builder.finish());
+            self.maybe_emit_metrics();
+            return Ok(());
+        }
         for idx in 0..self.plugins.len() {
             let (flow, outcome, plugin_name) = {
                 let entry = &mut self.plugins[idx];
@@ -600,6 +660,7 @@ impl RoomRuntime {
     }
 
     fn handle_resize(&mut self, size: Size) -> Result<()> {
+        self.current_size = size;
         let rects = self.layout.solve(size)?;
         self.rects = rects;
         self.registry.sync_layout(&self.rects);
@@ -612,6 +673,15 @@ impl RoomRuntime {
                 json_kv("height", json!(size.height)),
             ],
         );
+        Ok(())
+    }
+
+    pub(crate) fn apply_screen_layout(&mut self, layout: LayoutTree) -> Result<()> {
+        let rects = layout.solve(self.current_size)?;
+        self.layout = layout;
+        self.rects = rects;
+        self.registry.sync_layout(&self.rects);
+        self.redraw_requested = true;
         Ok(())
     }
 

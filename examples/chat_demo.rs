@@ -1,11 +1,13 @@
 use std::collections::VecDeque;
+use std::sync::Arc;
 use std::time::Duration;
 
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use room_mvp::{
     AnsiRenderer, CliDriver, Constraint, DefaultCliBundleConfig, Direction, EventFlow, LayoutNode,
-    LayoutTree, Rect, Result, RoomPlugin, RoomRuntime, RuntimeContext, RuntimeEvent, Size,
-    default_cli_bundle, ensure_input_state, try_input_state,
+    LayoutTree, LegacyScreenStrategy, Rect, Result, RoomPlugin, RoomRuntime, RuntimeContext,
+    RuntimeEvent, ScreenDefinition, ScreenManager, Size, default_cli_bundle, ensure_input_state,
+    try_input_state,
 };
 
 const HEADER_ZONE: &str = "app:chat.header";
@@ -16,8 +18,18 @@ const INPUT_ZONE: &str = "app:chat.footer.input";
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let layout = build_layout();
+    let screen_layout = layout.clone();
     let renderer = AnsiRenderer::with_default();
     let mut runtime = RoomRuntime::new(layout, renderer, Size::new(80, 24))?;
+
+    let mut screen_manager = ScreenManager::new();
+    screen_manager.register_screen(ScreenDefinition::new(
+        "chat",
+        "Chat Demo",
+        Arc::new(move || Box::new(LegacyScreenStrategy::new(screen_layout.clone()))),
+    ));
+    runtime.set_screen_manager(screen_manager);
+    runtime.activate_screen("chat")?;
 
     let mut bundle_cfg = DefaultCliBundleConfig::default();
     bundle_cfg.input_zone = INPUT_ZONE.to_string();
