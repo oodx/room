@@ -5,8 +5,9 @@ use std::time::Duration;
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use room_mvp::{
     AnsiRenderer, CliDriver, Constraint, Direction, EventFlow, FocusController, LayoutError,
-    LayoutNode, LayoutTree, PluginBundle, Rect, Result, RoomPlugin, RoomRuntime, RuntimeContext,
-    RuntimeEvent, SharedStateError, Size, display_width, ensure_focus_registry,
+    LayoutNode, LayoutTree, LegacyScreenStrategy, PluginBundle, Rect, Result, RoomPlugin,
+    RoomRuntime, RuntimeContext, RuntimeEvent, ScreenDefinition, ScreenManager, SharedStateError,
+    Size, display_width, ensure_focus_registry,
 };
 
 const HEADER_ZONE: &str = "app:control.header";
@@ -18,8 +19,18 @@ const HINTS_ZONE: &str = "app:control.hints";
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let layout = build_layout();
+    let screen_layout = layout.clone();
     let renderer = AnsiRenderer::with_default();
     let mut runtime = RoomRuntime::new(layout, renderer, Size::new(100, 32))?;
+
+    let mut screen_manager = ScreenManager::new();
+    screen_manager.register_screen(ScreenDefinition::new(
+        "control-room",
+        "Control Room",
+        Arc::new(move || Box::new(LegacyScreenStrategy::new(screen_layout.clone()))),
+    ));
+    runtime.set_screen_manager(screen_manager);
+    runtime.activate_screen("control-room")?;
 
     PluginBundle::new()
         .with_plugin(HeaderPlugin::default(), 5)

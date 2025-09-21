@@ -3,8 +3,9 @@ use std::time::Duration;
 
 use room_mvp::runtime::audit::{BootstrapAudit, RuntimeAudit, RuntimeAuditEvent};
 use room_mvp::{
-    AnsiRenderer, CliDriver, Constraint, Direction, LayoutNode, LayoutTree, Result, RoomPlugin,
-    RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent, Size,
+    AnsiRenderer, CliDriver, Constraint, Direction, LayoutNode, LayoutTree, LegacyScreenStrategy,
+    Result, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent, ScreenDefinition,
+    ScreenManager, Size,
 };
 const MESSAGE_ZONE: &str = "app:first_paint.message";
 
@@ -17,6 +18,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         gap: 0,
         padding: 0,
     });
+    let screen_layout = layout.clone();
 
     let renderer = AnsiRenderer::with_default();
     let mut config = RuntimeConfig::default();
@@ -25,6 +27,15 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     config.audit = Some(audit);
 
     let mut runtime = RoomRuntime::with_config(layout, renderer, Size::new(80, 10), config)?;
+
+    let mut screen_manager = ScreenManager::new();
+    screen_manager.register_screen(ScreenDefinition::new(
+        "first-paint",
+        "First Paint",
+        Arc::new(move || Box::new(LegacyScreenStrategy::new(screen_layout.clone()))),
+    ));
+    runtime.set_screen_manager(screen_manager);
+    runtime.activate_screen("first-paint")?;
     runtime.register_plugin(StaticBanner::default());
 
     CliDriver::new(runtime).run()?;

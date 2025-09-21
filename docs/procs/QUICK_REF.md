@@ -31,7 +31,7 @@
 
 ⚡ IMMEDIATE NEXT STEPS
 1. Smoke-test Boxy surfaces (dashboard, runtime prompt, workshops) under different terminals to confirm pre-render alignment.
-2. Verify the screen-managed demos (`chat_demo`, `audit_demo`, `boxy_dashboard_runtime`) and line up the next runtime/workshop target for migration.
+2. Verify the screen-managed demos (`chat_demo`, `audit_demo`, `boxy_dashboard_runtime`, `control_room`, `runtime_first_paint`) and line up the next runtime/workshop target for migration.
 3. Start outlining WORKSHOP-301 (first paint) in code + docs once WORKSHOP-201A is resolved.
 4. Capture perf data (`cargo bench --bench runtime`) after the rendering change and note any deltas.
 5. Continue logging completed sessions in DONE to keep history tidy.
