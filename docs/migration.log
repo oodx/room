@@ -1,0 +1,100 @@
+# META_PROCESS 2.1 Documentation Standardization Migration Log
+# Generated: 2025-09-21
+# Purpose: Systematically standardize file extensions and naming patterns
+
+## ANALYSIS OF CURRENT STATE
+
+### Extension Inconsistencies Identified:
+- Mixed .txt/.md usage in strategy documents (ref/)
+- Mixed .txt/.md usage in process documents (procs/)
+- Workshop files consistently use .md (good pattern to preserve)
+
+### Naming Pattern Issues:
+- Strategy files use mix of _STRAT vs STRATEGY suffixes
+- Some files use ALL_CAPS, others use sentence case
+- No consistent versioning or dating scheme
+
+## MIGRATION PLAN
+
+### PHASE 1: STANDARDIZE EXTENSIONS
+Rule: All documentation files should use .md extension for consistency
+Exception: Keep .txt for simple data files (TRADEMARKS, license files)
+
+### ref/ Directory Changes:
+BENCHMARK_STRAT.txt → BENCHMARK_STRAT.md
+CORE_PLUGIN_STRATEGY.txt → CORE_PLUGIN_STRATEGY.md
+FEATURES_RUNTIME_PHASE2.txt → FEATURES_RUNTIME_PHASE2.md
+PLUGIN_API.txt → PLUGIN_API.md
+SHARED_RUNTIME_STRAT.txt → SHARED_RUNTIME_STRAT.md
+SOCKET_STRAT.txt → SOCKET_STRAT.md
+
+### procs/ Directory Changes:
+DONE.txt → DONE.md
+PROCESS.txt → PROCESS.md
+QUICK_REF.txt → QUICK_REF.md
+ROADMAP.txt → ROADMAP.md
+SPRINT.txt → SPRINT.md
+TASKS.txt → TASKS.md
+
+### PHASE 2: PRESERVE EXISTING STRUCTURE
+- Keep lics/ directory as-is (license files appropriately use .txt)
+- Keep workshops/ subdirectory structure intact
+- Maintain archive/ subdirectory for historical records
+
+## CROSS-REFERENCE IMPACT ANALYSIS
+
+### High-Impact Files (Many References):
+- PROCESS.txt → PROCESS.md (17 references across multiple files)
+- TASKS.txt → TASKS.md (8 references)
+- DONE.txt → DONE.md (7 references)
+- STRATEGY.md (already .md, 6 references)
+
+### Medium-Impact Files:
+- SPRINT.txt → SPRINT.md (4 references)
+- CONTINUE.md (already .md, 3 references)
+- QUICK_REF.txt → QUICK_REF.md (3 references)
+
+### Files Requiring Reference Updates After Migration:
+1. docs/ref/workshops/workshop_boxy_grid.md
+2. docs/ref/workshops/workshop_room_bootstrap.md
+3. docs/ref/FEATURES_RUNTIME_PHASE2.txt (before its own migration)
+4. docs/procs/archive/TASKS_2025-09-18.md
+5. docs/procs/SPRINT.txt (before its own migration)
+6. docs/procs/QUICK_REF.txt (before its own migration)
+7. docs/procs/BACKLOG.md
+8. docs/procs/TASKS.txt (before its own migration)
+9. docs/procs/ROADMAP.txt (before its own migration)
+10. docs/procs/PROCESS.txt (before its own migration)
+11. docs/procs/CONTINUE.md
+12. docs/ref/workshops/workshop_boxy_dashboard_runtime.md
+13. docs/ref/workshops/workshop_layout_fundamentals.md
+
+## MIGRATION EXECUTION ORDER
+
+1. Rename all ref/ .txt files to .md
+2. Rename all procs/ .txt files to .md
+3. Update all cross-references in remaining files
+4. Verify no broken links remain
+
+## CONFLICTS AND CONSIDERATIONS
+
+### No Naming Conflicts:
+- All target .md filenames are unique
+- No existing .md files will be overwritten
+
+### Preserved Patterns:
+- Workshop naming convention maintained
+- Archive structure preserved
+- License file extensions kept as .txt (appropriate)
+
+### Risk Mitigation:
+- Execute renames before reference updates to avoid temporary broken states
+- Use systematic mv commands to ensure atomicity
+- Track each operation for potential rollback
+
+## POST-MIGRATION VALIDATION REQUIRED
+
+1. Verify all cross-references point to correct new paths
+2. Check that no .txt files remain in ref/ and procs/ (except archives)
+3. Ensure workshop cross-references still work
+4. Validate process flow documentation remains intact

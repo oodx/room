@@ -46,5 +46,5 @@ Keyboard shortcuts:
 - Integrate custom glyphs or metrics by editing `cycle_panels` and `metrics_text`.
 
 ## Wrap-Up
-- Record any insights in `docs/procs/DONE.txt` when you finish the workshop.
+- Record any insights in `docs/procs/DONE.md` when you finish the workshop.
 - Next workshop: First Paint Performance (WORKSHOP-301) leveraging `examples/runtime_first_paint.rs`.

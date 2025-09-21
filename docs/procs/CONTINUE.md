@@ -29,7 +29,7 @@
 
 ## Notes for Next Agent
 - Prefer editing docs through the new paths; avoid recreating process files in the repo root.
-- Validator maintenance guidance lives in `docs/procs/PROCESS.txt`; extend that section whenever you change `bin/validate-docs.sh`.
+- Validator maintenance guidance lives in `docs/procs/PROCESS.md`; extend that section whenever you change `bin/validate-docs.sh`.
 - After completing the reference sweep, rerun `./bin/validate-docs.sh` and record the pass here.
-- When sprint items close, move them into `docs/procs/DONE.txt` with timestamps so the validator’s silence reflects reality.
+- When sprint items close, move them into `docs/procs/DONE.md` with timestamps so the validator's silence reflects reality.
 - For audit work, review `examples/audit_demo.rs` first—the Boxy layout shows expected formatting once the placeholder lands and now demonstrates the audit bootstrap helper in practice. See `examples/bootstrap_helper.rs` and `examples/workshop_room_bootstrap.rs` for scripted bootstrap/control usage.

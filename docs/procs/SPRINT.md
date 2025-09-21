@@ -37,7 +37,7 @@ Bring the Room project in line with the META process so future sessions self-reh
    - Authored `docs/ref/workshops/workshop_boxy_grid.md` with exercises and follow-ups.
 
 ## Stretch Items
-- ROOM-603/604 integration: document remaining logging + benchmarking gaps in `docs/ref/LOGGING_STRAT.md` after validator update.
+- ROOM-603/604 integration: document remaining logging + benchmarking gaps in `docs/ref/strat/LOGGING_STRATEGY.md` after validator update.
 - Draft acceptance list for meta-process adoption so work can move into DONE once ROOM-META-004 lands.
 
 ## Definition of Done

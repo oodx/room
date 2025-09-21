@@ -8,7 +8,7 @@ to explore the solver's behaviour.
 ## Prerequisites
 - Rust toolchain + Room workspace checked out
 - Familiarity with `cargo run --example <name>`
-- Optional: open `docs/ref/STRATEGY.md` for deeper architecture notes
+- Optional: open `docs/ref/LAYOUT_ENGINE_STRATEGY.md` for deeper architecture notes
 
 ## Running the Workshop
 ```bash
@@ -65,6 +65,6 @@ suggests follow-up experiments.
 ---
 
 ## Reflection & Next Steps
-- Capture any interesting solver behaviours (e.g., overflow cases) in `docs/ref/STRATEGY.md`.
-- Extend the example with your own scenario (e.g., percent-based grids) and share learnings in `docs/procs/DONE.txt` when promoting the workshop.
-- Ready for more? See `docs/procs/TASKS.txt` for upcoming workshops (Boxy dashboard, first paint performance).
+- Capture any interesting solver behaviours (e.g., overflow cases) in `docs/ref/LAYOUT_ENGINE_STRATEGY.md`.
+- Extend the example with your own scenario (e.g., percent-based grids) and share learnings in `docs/procs/DONE.md` when promoting the workshop.
+- Ready for more? See `docs/procs/TASKS.md` for upcoming workshops (Boxy dashboard, first paint performance).

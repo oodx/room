@@ -1,0 +1,125 @@
+# META_PROCESS 2.1 Reference Updates Required
+# Generated: 2025-09-21
+# Status: POST-MIGRATION - Files renamed, references need updating
+
+## MIGRATION COMPLETED SUCCESSFULLY ✅
+
+### Files Renamed (ref/):
+- BENCHMARK_STRAT.txt → BENCHMARK_STRAT.md ✅
+- CORE_PLUGIN_STRATEGY.txt → CORE_PLUGIN_STRATEGY.md ✅
+- FEATURES_RUNTIME_PHASE2.txt → FEATURES_RUNTIME_PHASE2.md ✅
+- PLUGIN_API.txt → PLUGIN_API.md ✅
+- SHARED_RUNTIME_STRAT.txt → SHARED_RUNTIME_STRAT.md ✅
+- SOCKET_STRAT.txt → SOCKET_STRAT.md ✅
+
+### Files Renamed (procs/):
+- DONE.txt → DONE.md ✅
+- PROCESS.txt → PROCESS.md ✅
+- QUICK_REF.txt → QUICK_REF.md ✅
+- ROADMAP.txt → ROADMAP.md ✅
+- SPRINT.txt → SPRINT.md ✅
+- TASKS.txt → TASKS.md ✅
+
+## FILES REQUIRING REFERENCE UPDATES
+
+### High Priority (Process Flow Documents):
+
+1. **docs/procs/PROCESS.md** - Central process document
+   - References to update: QUICK_REF.txt, CONTINUE.md, SPRINT.txt, TASKS.txt, DONE.txt, ROADMAP.txt
+   - Impact: Critical - this is the main entry point
+
+2. **docs/procs/TASKS.md** - Active task tracking
+   - References to update: DONE.txt, BACKLOG.md, CONTINUE.md
+   - Impact: High - frequently accessed
+
+3. **docs/procs/SPRINT.md** - Current iteration scope
+   - References to update: Various workshop and strategy references
+   - Impact: High - active development reference
+
+4. **docs/procs/QUICK_REF.md** - Situational awareness
+   - References to update: SPRINT.txt
+   - Impact: High - entry point for quick context
+
+### Medium Priority (Strategy Documents):
+
+5. **docs/ref/FEATURES_RUNTIME_PHASE2.md**
+   - References to update: PLUGIN_API.txt, SHARED_RUNTIME_STRAT.txt
+   - Impact: Medium - technical reference
+
+6. **docs/ref/PLUGIN_API.md**
+   - References to update: SHARED_RUNTIME_STRAT.txt
+   - Impact: Medium - API documentation
+
+### Lower Priority (Workshop Documents):
+
+7. **docs/ref/workshops/workshop_boxy_grid.md**
+   - References to update: DONE.txt
+   - Impact: Low - workshop documentation
+
+8. **docs/ref/workshops/workshop_room_bootstrap.md**
+   - References to update: DONE.txt, TASKS.txt
+   - Impact: Low - workshop documentation
+
+9. **docs/ref/workshops/workshop_boxy_dashboard_runtime.md**
+   - References to update: DONE.txt
+   - Impact: Low - workshop documentation
+
+10. **docs/ref/workshops/workshop_layout_fundamentals.md**
+    - References to update: DONE.txt, TASKS.txt
+    - Impact: Low - workshop documentation
+
+### Administrative:
+
+11. **docs/procs/CONTINUE.md** - Session handoff log
+    - References to update: CONTINUE.md, DONE.txt
+    - Impact: Medium - ongoing session tracking
+
+12. **docs/procs/DONE.md** - Completed work log
+    - References to update: Various .txt references
+    - Impact: Medium - historical record
+
+13. **docs/procs/BACKLOG.md** - Pending work
+    - References to update: CONTINUE.md, TASKS.txt
+    - Impact: Medium - planning document
+
+## REFERENCE UPDATE STRATEGY
+
+### Systematic Approach:
+1. Start with high-priority process flow documents
+2. Use find-and-replace for consistent patterns
+3. Verify cross-references after each update
+4. Test that process flow still works end-to-end
+
+### Common Patterns to Update:
+- `docs/procs/TASKS.txt` → `docs/procs/TASKS.md`
+- `docs/procs/DONE.txt` → `docs/procs/DONE.md`
+- `docs/procs/SPRINT.txt` → `docs/procs/SPRINT.md`
+- `docs/procs/PROCESS.txt` → `docs/procs/PROCESS.md`
+- `docs/procs/QUICK_REF.txt` → `docs/procs/QUICK_REF.md`
+- `docs/procs/ROADMAP.txt` → `docs/procs/ROADMAP.md`
+- `docs/ref/PLUGIN_API.txt` → `docs/ref/PLUGIN_API.md`
+- `docs/ref/SHARED_RUNTIME_STRAT.txt` → `docs/ref/SHARED_RUNTIME_STRAT.md`
+
+### Files to Leave Unchanged:
+- docs/lics/TRADEMARKS (references LICENSE_COMMERCIAL.txt - correct)
+- docs/migration.log (historical record)
+- Any .analysis/ references to .txt files (external to docs/)
+
+## VALIDATION CHECKLIST
+
+After updates complete:
+- [ ] All process flow references work (START.txt → PROCESS.md → CONTINUE.md → SPRINT.md)
+- [ ] Workshop cross-references intact
+- [ ] Strategy document links functional
+- [ ] No broken .txt references remain in docs/
+- [ ] Archive files preserved correctly
+- [ ] License file references maintained
+
+## SUCCESS CRITERIA
+
+✅ All .txt files in ref/ and procs/ converted to .md
+✅ No naming conflicts or overwrites
+✅ Directory structure preserved
+🔄 Cross-references updated systematically
+🔄 Process flow validated end-to-end
+🔄 Documentation validator passes

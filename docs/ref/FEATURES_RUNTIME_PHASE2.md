@@ -27,7 +27,7 @@
 ## Documentation & API Surface
 - New bundle exports (`default_cli_bundle`, `InputSharedState`, helpers) and
   `SocketDriver` re-exported via `room_mvp` prelude.
-- `docs/ref/PLUGIN_API.txt` and `docs/ref/SHARED_RUNTIME_STRAT.txt` describe bundle usage,
+- `docs/ref/PLUGIN_API.md` and `docs/ref/SHARED_RUNTIME_STRATEGY.md` describe bundle usage,
   diagnostics configuration, and shared input state patterns.
 - Baseline `phase2` captured via `cargo bench --bench runtime -- --save-baseline phase2`
   with snapshots mirrored by `bin/snap_benchmarks.sh phase2`.

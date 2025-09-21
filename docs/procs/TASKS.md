@@ -3,9 +3,9 @@
 # Epic 2: Runtime, Plugins, and Tooling
 
 ## REFERENCES
-- REF-ROOM-101: docs/ref/RUNTIME_STRAT.md — runtime lifecycle, logging, benchmarking.
+- REF-ROOM-101: docs/ref/strat/RUNTIME_STRATEGY.md — runtime lifecycle, logging, benchmarking.
 - REF-ROOM-102: docs/procs/BACKLOG.md — open items from MVP roadmap.
-- REF-ROOM-103: docs/ref/STRATEGY.md — original architecture notes.
+- REF-ROOM-103: docs/ref/strat/LAYOUT_ENGINE_STRATEGY.md — original architecture notes.
 
 ## MILESTONE META: Self-Hydrating Workflow (Priority: CRITICAL)
 
@@ -56,7 +56,7 @@
 ### [x] ROOM-610: Capture runtime baselines [2 pts]
 - Baseline `phase2` captured via `cargo bench --bench runtime -- --save-baseline phase2`.
 - Snapshots mirrored into `meta/snaps/` with `bin/snap_benchmarks.sh phase2`.
-- Documented workflow in `docs/ref/FEATURES_RUNTIME_PHASE2.txt`.
+- Documented workflow in `docs/ref/FEATURES_RUNTIME_PHASE2.md`.
 
 ### [x] WORKSHOP-101: Layout Fundamentals Workshop [2 pts]
 - `examples/workshop_layout_fundamentals.rs` delivers three guided scenarios.
@@ -101,15 +101,15 @@
 ### [x] ROOM-612: Runtime bootstrap helpers [2 pts]
 - Provide helper(s) on `RoomRuntime` to force an initial render/tick, optionally wait for N ticks, or gate on first key input. ✅ (`BootstrapControls` with tick + key gating)
 - Update examples to opt into the bootstrap helper so first-run renders never start blank. ✅ (`audit_demo`, `runtime_first_paint`, `bootstrap_helper`)
-- Document usage alongside existing driver/bundle guidance. ✅ (`docs/ref/RUNTIME_STRAT.md` section)
+- Document usage alongside existing driver/bundle guidance. ✅ (`docs/ref/strat/RUNTIME_STRATEGY.md` section)
 
 ### [ ] ROOM-613: Focus defaults & prompt detection [2 pts]
 - Extend Focus API/runtime config so callers can declare a default focus zone (e.g., decorated prompt) during bootstrap.
 - Ensure bundles/examples can mark prompt zones for immediate focus without manual wiring.
-- Capture best practices for focus transitions in `docs/ref/CORE_PLUGIN_STRATEGY.txt`.
+- Capture best practices for focus transitions in `docs/ref/CORE_PLUGIN_STRATEGY.md`.
 
-### [ ] SCREEN-101: Screen/global zone architecture spec [2 pts]
-- Finalize the Screen + GlobalZone strategy doc (SCREEN_ZONE_STRAT) with lifecycle diagrams and update plan.
+-### [ ] SCREEN-101: Screen/global zone architecture spec [2 pts]
+- Finalize the Screen + GlobalZone strategy doc (`docs/ref/strat/SCREEN_ZONE_STRATEGY.md`) with lifecycle diagrams and update plan.
 - Identify integration points with `RoomRuntime` and outline migration steps for existing demos.
 
 ### [ ] SCREEN-102: Screen manager implementation [5 pts]

@@ -1,14 +1,14 @@
-================================================================================
- 🏗️ META-PROCESS v2: How to Create Self-Hydrating Workflow Systems
-================================================================================
+====
+ 🏗️ META-PROCESS v2.1: How to Create Self-Hydrating Workflow Systems
+====
 
 🎯 **Purpose**: Transform any messy project into a self-hydrating workflow system
 📅 **Created**: 2025-09-20 (based on Boxy project transformation)
 🔄 **Result**: 5-minute agent onboarding with zero context reconstruction
 
-================================================================================
+====
  📋 OVERVIEW: The Process Process
-================================================================================
+====
 
 This meta-process shows how to take any chaotic project and create a bulletproof
 self-hydrating workflow system that enables:
@@ -23,9 +23,9 @@ self-hydrating workflow system that enables:
 
 
 
-================================================================================
+====
  🔧 SETUP CHECKLIST
-================================================================================
+====
 
  For safety, before beginning this process, you should 
  - make sure you are on the main branch. If you are not then DO NOT RUN THIS PROCESS.
@@ -39,9 +39,9 @@ self-hydrating workflow system that enables:
  - if you have acess to #china, ask her to determine the type/content of the docs in document.log
 
 
-================================================================================
+====
  🎯 PHASE 1: PROJECT ASSESSMENT & DISCOVERY
-================================================================================
+====
 
 ## 📊 **Step 1.1: Document Inventory**
 
@@ -80,9 +80,9 @@ find . -name "*.md" -o -name "*.txt" -o -name "*.rst" | grep -v node_modules | s
 - Common context-switching pain points
 - Agent/developer onboarding time (current baseline)
 
-================================================================================
+====
  🏗️ PHASE 2: STRUCTURE DESIGN & ORGANIZATION
-================================================================================
+====
 
 ## 📁 **Step 2.1: Create Core Directory Structure**
 
@@ -94,6 +94,8 @@ project-root/
 ├── docs/
 │   ├── *                        ← Other docs and folders may not be updated yet
 │   ├── lics/                    ← Licenses (do not move this)
+│   ├── misc/                    ← for docs that dont have an obvious home
+│   │   └──archive/              ← safe archive for docs that may be old or unprocessed
 │   ├── procs/                   ← Process & status documents
 │   │   ├── PROCESS.txt          ← Master workflow guide
 │   │   ├── CONTINUE.md          ← Session status & handoffs
@@ -102,7 +104,7 @@ project-root/
 │   │   ├── ROADMAP.txt          ← Strategic overview & milestones
 │   │   ├── TASKS.txt            ← Detailed task breakdown
 │   │   └── DONE.txt             ← Completed work archive
-│   └── ref/                     ← Reference documentation
+│   └── ref/                     ← Reference documentation (can be broken down into child folders)
 │       ├── [DOMAIN]_GUIDE.md    ← Topic-specific guides
 │       ├── ARCHITECTURE.md      ← System architecture
 │       ├── LESSONS.md           ← Development lessons learned
@@ -133,16 +135,16 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
 - ✅ Update all internal references during migration
 - ✅ **NEVER move LICENSE or README.md** - industry standard requires root placement
 
-================================================================================
+====
  🎯 PHASE 3: CORE DOCUMENT CREATION
-================================================================================
+====
 
 ## 📄 **Step 3.1: Create START.txt (Entry Point)**
 
 ```txt
-================================================================================
+====
  🚀 [PROJECT NAME] - START HERE
-================================================================================
+====
 
 👋 **Welcome to [Project] Development!**
 
@@ -162,7 +164,7 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
 
 📁 **All Process Documents Located in docs/procs/**
 🔄 **Self-Hydrating System**: No manual context reconstruction needed!
-================================================================================
+====
 ```
 
 ## 📋 **Step 3.2: Create PROCESS.txt (Master Workflow)**
@@ -235,9 +237,9 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
 - [Session closure requirements]
 ```
 
-================================================================================
+====
  🎯 PHASE 4: AGENT ANALYSIS CONSOLIDATION (If Applicable)
-================================================================================
+====
 
 ## 🧠 **Step 4.1: Wisdom Consolidation**
 
@@ -265,6 +267,13 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
    nice-to-have features. Focus on unblocking dependencies and
    core functionality needed for project success.
    ```
+4. **Derived Tasks**
+   ```
+   Note any potential valid but undocumented tasks/milestones hidden away
+   in documents. You can add such tasks to the ROADMAP or BACKLOG or as tasks
+   DER-NN (derived). Make sure China and Tina are aware of this in case
+   you use them 
+
 
 ## 📋 **Step 4.2: Technical Debt Extraction**
 
@@ -289,9 +298,9 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
 - Create focused SPRINT.txt with critical path items
 - Document scope decisions in reference docs
 
-================================================================================
+====
  🔧 PHASE 5: AUTOMATION & VALIDATION
-================================================================================
+====
 
 ## 🔍 **Step 5.1: Create Documentation Validator**
 
@@ -341,9 +350,9 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
 2. **Quick** (30 seconds): QUICK_REF.txt essential context
 3. **Health Check**: Validation script for system integrity
 
-================================================================================
+====
  ✅ PHASE 6: TESTING & REFINEMENT
-================================================================================
+====
 
 ## 🧪 **Step 6.1: Agent Testing Protocol**
 
@@ -383,9 +392,9 @@ about the current project state."
 - Validate documentation integrity before major changes
 - Update META_PROCESS.txt with lessons learned
 
-================================================================================
+====
  📈 SUCCESS METRICS & OUTCOMES
-================================================================================
+====
 
 ## 🎯 **Measurable Improvements**
 
@@ -417,9 +426,9 @@ about the current project state."
 - **Tool Integration**: Works with any development workflow
 - **Documentation Debt**: Prevents accumulation of stale/scattered docs
 
-================================================================================
+====
  🎓 LESSONS LEARNED & BEST PRACTICES
-================================================================================
+====
 
 ## ✅ **What Works Well**
 
@@ -446,9 +455,9 @@ about the current project state."
 4. **Maintenance**: Keep QUICK_REF.txt current with project focus
 5. **Validation**: Run health checks before major changes
 
-================================================================================
+====
  🚀 IMPLEMENTATION CHECKLIST
-================================================================================
+====
 
 ## 📋 **Phase 1: Assessment**
 - [ ] Document inventory complete
@@ -487,9 +496,9 @@ about the current project state."
 - [ ] System maintenance procedures established
 - [ ] Success metrics baseline established
 
-================================================================================
+====
  📝 ADAPTATION GUIDE
-================================================================================
+====
 
 ## 🎯 **For Different Project Types**
 
@@ -510,9 +519,9 @@ about the current project state."
 **Long-Term Projects**: Add detailed historical context and decision rationale
 **Maintenance Projects**: Focus on troubleshooting guides and common patterns
 
-================================================================================
+====
  🚀 META_PROCESS V2 IMPROVEMENTS BACKLOG
-================================================================================
+====
 
 ## 📋 **Automation Enhancements (Future Implementation)**
 
@@ -575,12 +584,24 @@ Create these templates for projects to customize:
    - Update DONE.txt
    - Generate sprint retrospective
 
-================================================================================
 
+IMPORTANT REMINDER CHECKLIST
+- no documents in project root except key docs like README and START etc
+- china and tina should have both consolidated their eggs into proper files and 
+  removed used/processed eggs. 
+- .session/ directory and files should have similarly been processsed for their
+  key findings into appropriate analysis files and removed by china
+- if a document doesnt have a clear home structure it under docs/misc/*
+- archive documents.log
+- all ROADMAPS,TASKS,SPRINT status documents properly updated
+- merged back into main branch and changes committed
+
+
+====
 🎉 **RESULT**: Transform any chaotic project into a self-hydrating workflow
 system that enables 5-minute productive starts with zero context reconstruction!
 
 Last Updated: 2025-09-20
 Next Review: When v2 features are implemented
 
-================================================================================
+====

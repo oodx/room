@@ -3,7 +3,7 @@
 ## Phase 1 – Layout Engine MVP (Complete)
 - Constraint solver, zone registry, ANSI renderer.
 - Chat demo showcasing selective updates and footer input.
-- Documentation in `docs/ref/STRATEGY.md`; pending clean-up tracked in `BACKLOG.md`.
+- Documentation in `docs/ref/strat/LAYOUT_ENGINE_STRATEGY.md`; pending clean-up tracked in `BACKLOG.md`.
 
 ## Phase 2 – Runtime & Plugins (In Progress)
 - Build `RoomRuntime` coordinator with event loop and lifecycle hooks.

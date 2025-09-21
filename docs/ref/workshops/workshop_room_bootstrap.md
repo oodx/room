@@ -53,6 +53,6 @@ frame commits.
 - Replace the plain-text status zone with a Boxy panel for richer formatting.
 
 ## Wrap-Up
-When finished, record observations in `docs/procs/DONE.txt` (or link follow-up
-work in `docs/procs/TASKS.txt`) so future sessions know how bootstrap hygiene
+When finished, record observations in `docs/procs/DONE.md` (or link follow-up
+work in `docs/procs/TASKS.md`) so future sessions know how bootstrap hygiene
 was validated.

@@ -11,7 +11,7 @@
 - Validator still targets Room docs; treat any new warnings as blockers for handoff.
 - Active Phase: Runtime & Plugin Phase 2, observability polish + doc hygiene.
 
-📋 ACTIVE TASKS (see docs/procs/SPRINT.txt for detail)
+📋 ACTIVE TASKS (see docs/procs/SPRINT.md for detail)
 1. Finish the doc/reference sweep and record the clean pass. ✅
 2. Spec default focus wiring (ROOM-613) and start migrating demos/tests to the bootstrap + cursor helpers where useful.
 3. Exercise audit demos plus the new `bootstrap_helper`/`workshop_room_bootstrap` examples across terminals; log any rendering issues.

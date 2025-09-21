@@ -8,7 +8,7 @@ it in a real terminal to see the boxes snap into position.
 ## Prerequisites
 - `cargo run --example workshop_boxy_grid` (or `bin/examples.sh run workshop_boxy_grid`)
 - Familiarity with `docs/ref/workshops/workshop_boxy_dashboard_runtime.md`
-- Optional: review `docs/ref/STRATEGY.md` layout section
+- Optional: review `docs/ref/LAYOUT_ENGINE_STRATEGY.md` layout section
 
 ## Scenario A · 2x2 Grid
 1. Run the default scenario:
@@ -44,5 +44,5 @@ it in a real terminal to see the boxes snap into position.
 - Try mixing percent constraints with flex to mirror CSS grid templates.
 
 ## Wrap-Up
-- Log interesting findings in `docs/procs/DONE.txt` and consider adding automated
+- Log interesting findings in `docs/procs/DONE.md` and consider adding automated
   tests or benchmarks for desired grid configurations.

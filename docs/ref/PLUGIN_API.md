@@ -16,7 +16,7 @@ covers lifecycle hooks, priorities, and reuse patterns for adapters.
 - `RuntimeContext` exposes convenience helpers: `set_zone`, `request_render`,
   `request_exit`, `set_cursor_hint`, and `rect(&str)` to inspect layout results.
 - `RuntimeContext::shared`/`shared_init` give access to a shared state map (see
-  `docs/ref/SHARED_RUNTIME_STRAT.txt`) so plugins can collaborate without globals.
+  `docs/ref/SHARED_RUNTIME_STRATEGY.md`) so plugins can collaborate without globals.
   Convenience helpers like `ensure_focus_registry(ctx)` wrap common shared-state
   resources (e.g. focus management).
 

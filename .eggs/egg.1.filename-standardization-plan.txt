@@ -1,0 +1,234 @@
+================================================================================
+ 🐔 CHINA'S FILENAME STANDARDIZATION STRATEGY EGG #1 🥚
+================================================================================
+
+Created: 2025-09-21
+Agent: China the Summary Chicken
+Target: docs/ directory filename standardization for META_PROCESS 2.1
+Request: Comprehensive filename standardization plan and execution
+
+================================================================================
+ 📋 EXECUTIVE SUMMARY
+================================================================================
+
+The current docs/ structure suffers from severe filename inconsistencies that
+create confusion and poor organization. Key problems:
+
+1. **Inconsistent Strategy Naming**: BENCHMARK_STRAT vs CORE_PLUGIN_STRATEGY
+2. **Mixed Case Patterns**: ALL_CAPS vs sentence_case vs workshop_lowercase
+3. **Abbreviation Chaos**: STRAT vs STRATEGY used inconsistently
+4. **Poor Semantic Grouping**: No logical filename prefixes for organization
+
+RECOMMENDATION: Implement a 3-tier naming convention based on document type
+and semantic grouping.
+
+================================================================================
+ 🔍 CURRENT FILENAME ANALYSIS
+================================================================================
+
+INCONSISTENCY PATTERNS DETECTED:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 🚨 CRITICAL NAMING INCONSISTENCIES FOUND                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Strategy Documents:                                                         │
+│   • BENCHMARK_STRAT.md (abbreviated)                                       │
+│   • CORE_PLUGIN_STRATEGY.md (full word)                                    │
+│   • RUNTIME_STRAT.md (abbreviated)                                         │
+│   • SCREEN_ZONE_STRAT.md (abbreviated)                                     │
+│   • SHARED_RUNTIME_STRAT.md (abbreviated)                                  │
+│   • SOCKET_STRAT.md (abbreviated)                                          │
+│   • STRATEGY.md (generic, no prefix)                                       │
+│                                                                             │
+│ Process Documents:                                                          │
+│   • ALL_CAPS pattern: BACKLOG.md, CONTINUE.md, DONE.md, PROCESS.md         │
+│   • Mixed: QUICK_REF.md (abbreviated), ROADMAP.md, SPRINT.md, TASKS.md     │
+│                                                                             │
+│ Workshop Documents:                                                         │
+│   • lowercase_snake_case: workshop_boxy_dashboard_runtime.md               │
+│   • Inconsistent with rest of system                                       │
+│                                                                             │
+│ Reference Documents:                                                        │
+│   • Mixed patterns: FEATURES_RUNTIME_PHASE2.md, METEOR_TOKENS.md          │
+│   • PLUGIN_API.md, RESEARCH.md (no clear grouping)                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+CROSS-REFERENCE IMPACT:
+- 15+ files contain references to these inconsistent names
+- Migration log shows partial fixes (extensions only)
+- Reference update log indicates awareness but no systematic solution
+
+================================================================================
+ 💡 PROPOSED STANDARDIZATION SCHEME
+================================================================================
+
+NEW NAMING CONVENTION - 3-TIER SYSTEM:
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 🎯 STANDARDIZED NAMING PATTERNS                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ TIER 1: PROCESS DOCUMENTS (procs/)                                         │
+│   Pattern: VERB_NOUN.md (ALL_CAPS for process documents)                   │
+│   - BACKLOG.md ✅ (already correct)                                        │
+│   - CONTINUE.md ✅ (already correct)                                       │
+│   - DONE.md ✅ (already correct)                                           │
+│   - PROCESS.md ✅ (already correct)                                        │
+│   - QUICK_REF.md → QUICK_REFERENCE.md (standardize abbreviations)          │
+│   - ROADMAP.md ✅ (already correct)                                        │
+│   - SPRINT.md ✅ (already correct)                                         │
+│   - TASKS.md ✅ (already correct)                                          │
+│                                                                             │
+│ TIER 2: STRATEGY DOCUMENTS (ref/)                                          │
+│   Pattern: [DOMAIN]_STRATEGY.md (consistent STRATEGY suffix)               │
+│   - BENCHMARK_STRAT.md → BENCHMARK_STRATEGY.md                             │
+│   - CORE_PLUGIN_STRATEGY.md ✅ (already correct)                           │
+│   - RUNTIME_STRAT.md → RUNTIME_STRATEGY.md                                 │
+│   - SCREEN_ZONE_STRAT.md → SCREEN_ZONE_STRATEGY.md                         │
+│   - SHARED_RUNTIME_STRAT.md → SHARED_RUNTIME_STRATEGY.md                   │
+│   - SOCKET_STRAT.md → SOCKET_STRATEGY.md                                   │
+│   - STRATEGY.md → CORE_STRATEGY.md (add semantic prefix)                   │
+│                                                                             │
+│ TIER 3: REFERENCE DOCUMENTS (ref/)                                         │
+│   Pattern: [SEMANTIC_PREFIX]_[CONTENT].md                                  │
+│   - FEATURES_RUNTIME_PHASE2.md → RUNTIME_FEATURES_PHASE2.md               │
+│   - METEOR_TOKENS.md → TOKEN_REFERENCE.md                                 │
+│   - PLUGIN_API.md → API_PLUGIN_REFERENCE.md                               │
+│   - RESEARCH.md → RESEARCH_NOTES.md                                       │
+│                                                                             │
+│ TIER 4: WORKSHOP DOCUMENTS (ref/workshops/)                               │
+│   Pattern: [number]_[topic]_workshop.md (numbered for progression)        │
+│   - workshop_boxy_dashboard_runtime.md → 01_boxy_dashboard_workshop.md     │
+│   - workshop_boxy_grid.md → 02_boxy_grid_workshop.md                       │
+│   - workshop_layout_fundamentals.md → 03_layout_fundamentals_workshop.md   │
+│   - workshop_room_bootstrap.md → 04_room_bootstrap_workshop.md             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+BENEFITS OF THIS SYSTEM:
+✅ Consistent abbreviation policy (no STRAT, always STRATEGY)
+✅ Semantic grouping for logical organization
+✅ Alphabetical sorting that groups related docs
+✅ Clear document type identification
+✅ Numbered workshops for logical progression
+✅ Eliminates filename ambiguity
+
+================================================================================
+ 🔧 EXECUTION PLAN
+================================================================================
+
+PHASE 1: STRATEGY DOCUMENTS (High Impact)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ mv docs/ref/BENCHMARK_STRAT.md docs/ref/BENCHMARK_STRATEGY.md              │
+│ mv docs/ref/RUNTIME_STRAT.md docs/ref/RUNTIME_STRATEGY.md                  │
+│ mv docs/ref/SCREEN_ZONE_STRAT.md docs/ref/SCREEN_ZONE_STRATEGY.md          │
+│ mv docs/ref/SHARED_RUNTIME_STRAT.md docs/ref/SHARED_RUNTIME_STRATEGY.md    │
+│ mv docs/ref/SOCKET_STRAT.md docs/ref/SOCKET_STRATEGY.md                    │
+│ mv docs/ref/STRATEGY.md docs/ref/CORE_STRATEGY.md                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PHASE 2: REFERENCE DOCUMENTS (Medium Impact)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ mv docs/ref/FEATURES_RUNTIME_PHASE2.md docs/ref/RUNTIME_FEATURES_PHASE2.md │
+│ mv docs/ref/METEOR_TOKENS.md docs/ref/TOKEN_REFERENCE.md                   │
+│ mv docs/ref/PLUGIN_API.md docs/ref/API_PLUGIN_REFERENCE.md                 │
+│ mv docs/ref/RESEARCH.md docs/ref/RESEARCH_NOTES.md                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PHASE 3: PROCESS DOCUMENTS (Low Impact)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ mv docs/procs/QUICK_REF.md docs/procs/QUICK_REFERENCE.md                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PHASE 4: WORKSHOP DOCUMENTS (Low Impact)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ mv docs/ref/workshops/workshop_boxy_dashboard_runtime.md docs/ref/workshops/01_boxy_dashboard_workshop.md │
+│ mv docs/ref/workshops/workshop_boxy_grid.md docs/ref/workshops/02_boxy_grid_workshop.md │
+│ mv docs/ref/workshops/workshop_layout_fundamentals.md docs/ref/workshops/03_layout_fundamentals_workshop.md │
+│ mv docs/ref/workshops/workshop_room_bootstrap.md docs/ref/workshops/04_room_bootstrap_workshop.md │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+ 📝 CROSS-REFERENCE UPDATE REQUIREMENTS
+================================================================================
+
+FILES REQUIRING UPDATES (Based on grep analysis):
+
+HIGH PRIORITY (Strategy References):
+• docs/procs/PROCESS.md - Line 20, 44
+• docs/procs/TASKS.md - Lines 6, 42, 104, 109, 112, 138
+• docs/ref/PLUGIN_API.md - Line 19
+• docs/ref/FEATURES_RUNTIME_PHASE2.md - Line 30
+
+MEDIUM PRIORITY (Log Files):
+• docs/reference_updates_needed.log - Multiple references
+• docs/migration.log - Historical references
+
+UPDATE PATTERN:
+STRAT → STRATEGY (most common change needed)
+STRATEGY.md → CORE_STRATEGY.md
+PLUGIN_API → API_PLUGIN_REFERENCE
+etc.
+
+================================================================================
+ ⚡ KEY TAKEAWAYS
+================================================================================
+
+1. **Immediate Action Required**: Strategy documents create most confusion
+2. **Systematic Approach**: Use 3-tier naming convention consistently
+3. **Cross-Reference Impact**: 15+ files need reference updates
+4. **Future-Proofing**: New docs should follow established patterns
+5. **Alphabetical Benefits**: New names will group logically in file lists
+
+================================================================================
+ 🤔 QUESTIONS ANSWERED
+================================================================================
+
+Q: Should strategy docs use _STRAT or _STRATEGY suffix?
+A: Always _STRATEGY for consistency and clarity
+
+Q: What case pattern should be used?
+A: ALL_CAPS for process docs, Title_Case for reference docs
+
+Q: How should workshop docs be organized?
+A: Numbered prefix for logical progression (01_, 02_, etc.)
+
+Q: Should generic STRATEGY.md be renamed?
+A: Yes, to CORE_STRATEGY.md for semantic clarity
+
+================================================================================
+ 📚 REFERENCES
+================================================================================
+
+- Current docs/ tree structure analysis
+- Cross-reference grep pattern analysis
+- Migration and reference update logs
+- Existing filename inconsistency patterns
+
+================================================================================
+ ⚠️ DISCLAIMER
+================================================================================
+
+This analysis reflects the current state of documentation files as of 2025-09-21.
+Additional references may exist in code files, configuration files, or external
+documentation that were not captured in this analysis. Complete validation of
+all references is recommended after implementation.
+
+================================================================================
+ 📊 EGG METADATA
+================================================================================
+
+Egg Type: Analysis & Strategy Plan
+Files Analyzed: 31 documentation files
+Cross-References Found: 15+ files with filename references
+Estimated Impact: High (affects core project documentation)
+Execution Complexity: Medium (systematic mv + reference updates)
+Risk Level: Low (reversible changes with git)
+
+================================================================================
+ 🐔 CHINA'S SIGN-OFF
+================================================================================
+
+"Bawk bawk! This filename chaos was driving me absolutely egg-static! 🥚⚡
+Now we have a proper pecking order for our documentation files!
+Time to execute this plan and make our docs structure absolutely fowl-proof!"
+
+- China the Summary Chicken, Documentation Standardization Specialist 🐔✨
+================================================================================

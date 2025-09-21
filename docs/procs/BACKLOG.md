@@ -18,4 +18,4 @@
   - Build on `examples/runtime_first_paint.rs` to teach first-render metrics and audit hooks.
   - Acceptance: documented tasks + baseline expectations for render timing.
 
-(Archived from `docs/procs/TASKS.txt` on 2025-09-18.)
+(Archived from `docs/procs/TASKS.md` on 2025-09-18.)

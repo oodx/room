@@ -60,10 +60,10 @@ done
 # Critical process docs (7-day freshness)
 critical_docs=(
     "START.txt:START entry point"
-    "docs/procs/PROCESS.txt:workflow guide"
+    "docs/procs/PROCESS.md:workflow guide"
     "docs/procs/CONTINUE.md:session log"
-    "docs/procs/QUICK_REF.txt:quick reference"
-    "docs/procs/SPRINT.txt:active sprint plan"
+    "docs/procs/QUICK_REF.md:quick reference"
+    "docs/procs/SPRINT.md:active sprint plan"
 )
 
 for entry in "${critical_docs[@]}"; do
@@ -75,10 +75,10 @@ done
 
 # Supporting process docs (30-day freshness)
 support_docs=(
-    "docs/procs/TASKS.txt:task backlog"
+    "docs/procs/TASKS.md:task backlog"
     "docs/procs/BACKLOG.md:pending tickets"
-    "docs/procs/ROADMAP.txt:roadmap"
-    "docs/procs/DONE.txt:done log"
+    "docs/procs/ROADMAP.md:roadmap"
+    "docs/procs/DONE.md:done log"
     "docs/procs/archive:TASK archive directory"
 )
 
@@ -95,18 +95,21 @@ done
 
 # Reference docs that should exist (no freshness check here)
 ref_docs=(
-    "docs/ref/STRATEGY.md"
-    "docs/ref/RUNTIME_STRAT.md"
-    "docs/ref/PLUGIN_API.txt"
-    "docs/ref/FEATURES_RUNTIME_PHASE2.txt"
-    "docs/ref/LOGGING_STRAT.md"
-    "docs/ref/SHARED_RUNTIME_STRAT.txt"
-    "docs/ref/SOCKET_STRAT.txt"
-    "docs/ref/CORE_PLUGIN_STRATEGY.txt"
+    "docs/ref/strat/LAYOUT_ENGINE_STRATEGY.md"
+    "docs/ref/strat/RUNTIME_STRATEGY.md"
+    "docs/ref/PLUGIN_API.md"
+    "docs/ref/FEATURES_RUNTIME_PHASE2.md"
+    "docs/ref/strat/LOGGING_STRATEGY.md"
+    "docs/ref/strat/SHARED_RUNTIME_STRATEGY.md"
+    "docs/ref/strat/SOCKET_STRATEGY.md"
+    "docs/ref/strat/CORE_PLUGIN_STRATEGY.md"
+    "docs/ref/strat/BENCHMARKING_STRATEGY.md"
+    "docs/ref/strat/SCREEN_ZONE_STRATEGY.md"
     "docs/ref/METEOR_TOKENS.md"
     "docs/ref/RESEARCH.md"
     "docs/ref/workshops/workshop_layout_fundamentals.md"
     "docs/ref/workshops/workshop_boxy_dashboard_runtime.md"
+    "docs/ref/workshops/workshop_boxy_grid.md"
 )
 for path in "${ref_docs[@]}"; do
     check_exists "$path" "$path" > /dev/null || true

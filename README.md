@@ -4,7 +4,7 @@ Pilot workbench for a flicker-free terminal layout engine driven by RSB token st
 
 ## Components
 - `room`: experimental crate with layout solver, zone registry, renderer, and token router.
-- `docs/ref/STRATEGY.md`: architectural notes, verification checklist, and follow-up items.
+- `docs/ref/strat/LAYOUT_ENGINE_STRATEGY.md`: architectural notes, verification checklist, and follow-up items.
 - `docs/procs/TASKS.txt`: story-point backlog with completion status.
 
 ## Quickstart
@@ -37,7 +37,7 @@ Room's architecture is built around several key components:
 - Renderer: Efficient, minimal-flicker content drawing
 - Token Router: State-driven interface updates
 
-Detailed architectural notes live in `docs/ref/STRATEGY.md`.
+Detailed architectural notes live in `docs/ref/LAYOUT_ENGINE_STRATEGY.md`.
 
 ## Documentation
 
