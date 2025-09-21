@@ -103,10 +103,10 @@
 - Update examples to opt into the bootstrap helper so first-run renders never start blank. ✅ (`audit_demo`, `runtime_first_paint`, `bootstrap_helper`)
 - Document usage alongside existing driver/bundle guidance. ✅ (`docs/ref/strat/RUNTIME_STRATEGY.md` section)
 
-### [ ] ROOM-613: Focus defaults & prompt detection [2 pts]
-- Extend Focus API/runtime config so callers can declare a default focus zone (e.g., decorated prompt) during bootstrap.
-- Ensure bundles/examples can mark prompt zones for immediate focus without manual wiring.
-- Capture best practices for focus transitions in `docs/ref/CORE_PLUGIN_STRATEGY.md`.
+### [x] ROOM-613: Focus defaults & prompt detection [2 pts]
+- Extend Focus API/runtime config so callers can declare a default focus zone (e.g., decorated prompt) during bootstrap. ✅ (`RuntimeConfig::default_focus_zone`)
+- Ensure bundles/examples can mark prompt zones for immediate focus without manual wiring. ✅ (prompt-driven demos now set the zone; screen manager reapplies focus on activation)
+- Capture best practices for focus transitions in `docs/ref/CORE_PLUGIN_STRATEGY.md`. ✅ (new "Default Focus" guidance)
 
 	-### [x] SCREEN-101: Screen/global zone architecture spec [2 pts]
 	- Finalize the Screen + GlobalZone strategy doc (`docs/ref/strat/SCREEN_ZONE_STRATEGY.md`) with lifecycle diagrams and update plan. ✅

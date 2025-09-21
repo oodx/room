@@ -7,13 +7,13 @@ use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 use serde_json::json;
 
 use self::audit::{NullRuntimeAudit, RuntimeAudit, RuntimeAuditEventBuilder, RuntimeAuditStage};
+use self::focus::{FocusController, ensure_focus_registry};
 use self::screens::ScreenManager;
 use crate::logging::{event_with_fields, json_kv};
 use crate::{
     AnsiRenderer, LayoutError, LayoutTree, LogLevel, Logger, Rect, Result, RuntimeMetrics, Size,
     ZoneRegistry,
 };
-
 pub mod audit;
 pub mod bundles;
 pub mod diagnostics;
@@ -21,6 +21,8 @@ pub mod driver;
 pub mod focus;
 pub mod screens;
 pub mod shared_state;
+
+const RUNTIME_FOCUS_OWNER: &str = "room::runtime";
 
 pub struct PluginBundle {
     entries: Vec<PluginEntry>,
@@ -74,6 +76,8 @@ pub struct RuntimeConfig {
     pub metrics_target: String,
     /// Optional audit sink for lifecycle instrumentation.
     pub audit: Option<Arc<dyn RuntimeAudit>>,
+    /// Zone that should receive focus automatically once bootstrap completes.
+    pub default_focus_zone: Option<String>,
 }
 
 impl Default for RuntimeConfig {
@@ -85,6 +89,7 @@ impl Default for RuntimeConfig {
             metrics_interval: Duration::from_secs(5),
             metrics_target: "room::runtime.metrics".to_string(),
             audit: None,
+            default_focus_zone: None,
         }
     }
 }
@@ -731,6 +736,22 @@ impl RoomRuntime {
                 .detail("priority", json!(priority));
             self.audit_record_event(builder.finish());
         }
+        self.apply_configured_focus()?;
+        Ok(())
+    }
+
+    pub(crate) fn apply_configured_focus(&mut self) -> Result<()> {
+        let Some(zone) = self.config.default_focus_zone.clone() else {
+            return Ok(());
+        };
+
+        let ctx = RuntimeContext::new(&self.rects, &self.shared_state);
+        let registry = ensure_focus_registry(&ctx)
+            .map_err(|err| LayoutError::Backend(format!("focus registry: {err}")))?;
+        let mut controller = FocusController::new(RUNTIME_FOCUS_OWNER, registry);
+        controller.focus(zone);
+        let outcome = ctx.into_outcome();
+        self.apply_outcome(outcome)?;
         Ok(())
     }
 

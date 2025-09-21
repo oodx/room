@@ -22,6 +22,12 @@
 - Downstream crates (e.g. `room_mux_plugins`) can re-export Room’s foundations and add mux-specific behaviors.
 - Provide example bundles in `examples/` that demonstrate combining core plugins with custom ones.
 
+## Default Focus Guidance
+- The runtime now exposes `RuntimeConfig::default_focus_zone`; set this during bootstrap so prompt-centric plugins (like the default CLI bundle) receive focus automatically after `RoomRuntime::run` starts.
+- When screens change, `ScreenManager::finish_activation` reapplies the configured zone, so legacy demos only need to configure the zone once (usually to point at the prompt).
+- Focus controllers created by plugins should continue to use distinct owners (`FocusController::new`) so manual overrides (e.g. palettes) can temporarily claim focus without fighting the runtime owner.
+- When a screen swaps to a different prompt, update `RuntimeConfig::default_focus_zone` before calling `activate` to steer the runtime owner to the new zone.
+
 ## Next Steps
 1. Sketch `CommandDispatcherPlugin` API: target zone, shared input hook, callback/event emitter, optional command registry.
 2. Design a lightweight focus palette helper that coordinates with `FocusRegistry` and exposes open/close operations.

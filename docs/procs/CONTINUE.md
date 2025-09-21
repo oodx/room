@@ -8,7 +8,7 @@
 - Introduced `examples/runtime_first_paint.rs` to force an immediate render and spotlight audit output for onboarding.
 - Replaced the prompt scratchpad with `examples/audit_demo.rs` – a Boxy dashboard that consumes the audit feed once the first frame paints.
 - Wired audit re-exports through `lib.rs` and updated `chat_demo` to cover the expanded `RuntimeEvent` match.
-- Logged follow-up tasks (ROOM-612/613) for formalising bootstrap helpers and default focus handling.
+- Logged follow-up tasks (ROOM-612/613) for formalising bootstrap helpers and default focus handling (FOCUS defaults complete via `RuntimeConfig::default_focus_zone`).
 - Finalised the SCREEN-101 spec with lifecycle diagrams, risks, and migration plan (`docs/ref/strat/SCREEN_ZONE_STRATEGY.md`).
 - Scaffolded the `ScreenManager` (SCREEN-102) with activation APIs, lifecycle hooks, and event routing while keeping single-screen flows intact.
 - Added a `LegacyScreenStrategy`, exported the toolkit, and updated `chat_demo` to activate the screen manager during startup to prove the legacy flow survives.
@@ -21,12 +21,11 @@
 - **Progress**: Audit infrastructure and demos landed with first-frame gating; cursor utilities + bootstrap workshop shipping; screen manager now exercised via the chat demo; meta-process scaffolding stable; reference sweep still queued.
 
 ## Next Steps (Priority Order)
-1. Spec default focus wiring (ROOM-613) so prompt-style plugins can declare their target zone without manual controllers.
-2. Extend SCREEN-102 by migrating the remaining demos/bundles onto the screen manager and adding focused activation tests.
+1. Roll the remaining doc/reference sweep and record the pass in DONE once complete.
+2. Keep SCREEN-103+ follow-ups in view (global zone defaults, navigation) now that focus defaults and manager coverage are in place.
 3. Draft the multi-screen workshop plan (SCREEN-106) so we can exercise the manager once demos are migrated.
-4. Finish the documentation/reference sweep and record the pass in DONE once complete.
-5. Exercise `audit_demo`, `runtime_first_paint`, the new `bootstrap_helper`, and `workshop_room_bootstrap` across terminals; capture any ANSI glitches as follow-up issues.
-6. Document bootstrap control usage in reference notes and migrate existing demos if further alignment is needed (cursor helpers now available).
+4. Exercise `audit_demo`, `runtime_first_paint`, the new `bootstrap_helper`, `chat_workshop`, `boxy_dashboard`, and `workshop_room_bootstrap` across terminals; capture any ANSI glitches as follow-up issues.
+5. Document bootstrap control usage in reference notes and migrate existing demos if further alignment is needed (cursor helpers now available).
 
 ## Blockers / Risks
 - Residual stale references may exist outside the primary process docs; they could confuse the next agent if left unchecked.

@@ -170,6 +170,7 @@ impl ScreenManager {
         runtime.apply_screen_layout(layout)?;
         strategy.register_panels(runtime)?;
         strategy.on_lifecycle(ScreenLifecycleEvent::DidAppear)?;
+        runtime.apply_configured_focus()?;
 
         if let Some(mut previous) = self.active.take() {
             previous
@@ -201,8 +202,12 @@ impl ScreenManager {
 
 #[cfg(test)]
 mod tests {
+    use super::super::RUNTIME_FOCUS_OWNER;
     use super::*;
-    use crate::{AnsiRenderer, Constraint, Direction, LayoutNode, LayoutTree, RuntimeConfig, Size};
+    use crate::{
+        AnsiRenderer, Constraint, Direction, LayoutNode, LayoutTree, RuntimeConfig, RuntimeContext,
+        Size, runtime::focus::ensure_focus_registry,
+    };
     use std::sync::Mutex;
 
     #[test]
@@ -280,14 +285,14 @@ mod tests {
             Ok(EventFlow::Continue)
         }
 
-    fn on_lifecycle(&mut self, event: ScreenLifecycleEvent) -> Result<()> {
-        self.state.lock().unwrap().lifecycles.push(event);
-        Ok(())
+        fn on_lifecycle(&mut self, event: ScreenLifecycleEvent) -> Result<()> {
+            self.state.lock().unwrap().lifecycles.push(event);
+            Ok(())
+        }
     }
-}
 
-#[test]
-fn activate_and_finish_records_lifecycle() {
+    #[test]
+    fn activate_and_finish_records_lifecycle() {
         let mut manager = ScreenManager::new();
         let state = Arc::new(Mutex::new(TestState::default()));
         let state_clone = state.clone();
@@ -418,6 +423,7 @@ fn activate_and_finish_records_lifecycle() {
             RuntimeConfig::default(),
         )
         .expect("runtime");
+        runtime.config_mut().default_focus_zone = Some("primary:zone".to_string());
 
         // Activate primary screen
         let activation = manager.activate("primary").expect("activate primary");
@@ -426,15 +432,21 @@ fn activate_and_finish_records_lifecycle() {
             .expect("finish primary");
 
         // Switch to secondary screen
-        let activation = manager
-            .activate("secondary")
-            .expect("activate secondary");
+        runtime.config_mut().default_focus_zone = Some("secondary:zone".to_string());
+        let activation = manager.activate("secondary").expect("activate secondary");
         manager
             .finish_activation(&mut runtime, activation)
             .expect("finish secondary");
 
         // Ensure layout root was updated to secondary screen
         assert_eq!(runtime.layout.root.id, "root:secondary");
+
+        // Default focus should track the active screen
+        let ctx = RuntimeContext::new(&runtime.rects, &runtime.shared_state);
+        let focus_registry = ensure_focus_registry(&ctx).expect("focus registry");
+        let focus_entry = focus_registry.current().expect("focus entry");
+        assert_eq!(focus_entry.owner, RUNTIME_FOCUS_OWNER);
+        assert_eq!(focus_entry.zone_id, "secondary:zone");
 
         let log = calls.lock().unwrap();
         use Call::*;

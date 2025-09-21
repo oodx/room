@@ -21,6 +21,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let screen_layout = layout.clone();
     let renderer = AnsiRenderer::with_default();
     let mut runtime = RoomRuntime::new(layout, renderer, Size::new(80, 24))?;
+    runtime.config_mut().default_focus_zone = Some(INPUT_ZONE.to_string());
 
     let mut screen_manager = ScreenManager::new();
     screen_manager.register_screen(ScreenDefinition::new(
