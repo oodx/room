@@ -280,14 +280,14 @@ mod tests {
             Ok(EventFlow::Continue)
         }
 
-        fn on_lifecycle(&mut self, event: ScreenLifecycleEvent) -> Result<()> {
-            self.state.lock().unwrap().lifecycles.push(event);
-            Ok(())
-        }
+    fn on_lifecycle(&mut self, event: ScreenLifecycleEvent) -> Result<()> {
+        self.state.lock().unwrap().lifecycles.push(event);
+        Ok(())
     }
+}
 
-    #[test]
-    fn activate_and_finish_records_lifecycle() {
+#[test]
+fn activate_and_finish_records_lifecycle() {
         let mut manager = ScreenManager::new();
         let state = Arc::new(Mutex::new(TestState::default()));
         let state_clone = state.clone();
@@ -333,5 +333,121 @@ mod tests {
         );
         assert!(state.panels_registered);
         assert_eq!(manager.active_id(), Some("main"));
+    }
+
+    #[test]
+    fn switch_between_screens_invokes_lifecycle_and_updates_layouts() {
+        let mut manager = ScreenManager::new();
+
+        fn layout_for(id: &str) -> LayoutTree {
+            LayoutTree::new(LayoutNode {
+                id: format!("root:{id}"),
+                direction: Direction::Column,
+                constraints: vec![Constraint::Flex(1)],
+                children: vec![LayoutNode::leaf(format!("{id}:zone"))],
+                gap: 0,
+                padding: 0,
+            })
+        }
+
+        #[derive(Debug, PartialEq, Eq)]
+        enum Call {
+            WillAppear(&'static str),
+            DidAppear(&'static str),
+            WillDisappear(&'static str),
+            DidDisappear(&'static str),
+        }
+
+        struct RecordingStrategy {
+            id: &'static str,
+            calls: Arc<Mutex<Vec<Call>>>,
+        }
+
+        impl GlobalZoneStrategy for RecordingStrategy {
+            fn layout(&self) -> LayoutTree {
+                layout_for(self.id)
+            }
+
+            fn register_panels(&mut self, _runtime: &mut RoomRuntime) -> Result<()> {
+                Ok(())
+            }
+
+            fn handle_event(
+                &mut self,
+                _ctx: &mut RuntimeContext<'_>,
+                _event: &RuntimeEvent,
+            ) -> Result<EventFlow> {
+                Ok(EventFlow::Continue)
+            }
+
+            fn on_lifecycle(&mut self, event: ScreenLifecycleEvent) -> Result<()> {
+                let mut calls = self.calls.lock().unwrap();
+                calls.push(match event {
+                    ScreenLifecycleEvent::WillAppear => Call::WillAppear(self.id),
+                    ScreenLifecycleEvent::DidAppear => Call::DidAppear(self.id),
+                    ScreenLifecycleEvent::WillDisappear => Call::WillDisappear(self.id),
+                    ScreenLifecycleEvent::DidDisappear => Call::DidDisappear(self.id),
+                });
+                Ok(())
+            }
+        }
+
+        let calls = Arc::new(Mutex::new(Vec::new()));
+
+        for screen_id in ["primary", "secondary"] {
+            let call_log = Arc::clone(&calls);
+            manager.register_screen(ScreenDefinition {
+                id: screen_id.to_string(),
+                title: screen_id.to_string(),
+                factory: Arc::new(move || {
+                    Box::new(RecordingStrategy {
+                        id: screen_id,
+                        calls: Arc::clone(&call_log),
+                    })
+                }),
+                metadata: ScreenMetadata::default(),
+            });
+        }
+
+        let base_layout = layout_for("base");
+        let renderer = AnsiRenderer::with_default();
+        let mut runtime = RoomRuntime::with_config(
+            base_layout,
+            renderer,
+            Size::new(32, 8),
+            RuntimeConfig::default(),
+        )
+        .expect("runtime");
+
+        // Activate primary screen
+        let activation = manager.activate("primary").expect("activate primary");
+        manager
+            .finish_activation(&mut runtime, activation)
+            .expect("finish primary");
+
+        // Switch to secondary screen
+        let activation = manager
+            .activate("secondary")
+            .expect("activate secondary");
+        manager
+            .finish_activation(&mut runtime, activation)
+            .expect("finish secondary");
+
+        // Ensure layout root was updated to secondary screen
+        assert_eq!(runtime.layout.root.id, "root:secondary");
+
+        let log = calls.lock().unwrap();
+        use Call::*;
+        assert_eq!(
+            log.as_slice(),
+            [
+                WillAppear("primary"),
+                DidAppear("primary"),
+                WillDisappear("primary"),
+                WillAppear("secondary"),
+                DidAppear("secondary"),
+                DidDisappear("primary"),
+            ]
+        );
     }
 }
