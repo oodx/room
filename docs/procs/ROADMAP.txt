@@ -9,6 +9,7 @@
 - Build `RoomRuntime` coordinator with event loop and lifecycle hooks.
 - Formalize plugin system; extract chat/workshop behaviors into reusable modules.
 - Ship structured logging + metrics and Criterion benchmarks for regression tracking.
+- Introduce Screens + Global Zone layer so applications can swap full-view layouts without restarting the runtime.
 
 ## Phase 3 – Declarative Layout & Batteries Included UX
 - Create layout DSL/compiler for zone declarations and plugin wiring.
@@ -24,4 +25,3 @@
 - Deep-dive profiling, runtime diagnostics dashboard, replay tooling.
 - Long-running soak tests feeding synthetic workloads.
 - Hardening for multi-plugin coexistence and backpressure handling.
-

@@ -1,0 +1,100 @@
+# Screen & Global Zone Strategy
+
+This note captures the first-pass architecture for introducing **Screens** and
+**Global Zones** into the Room runtime so applications can present multiple
+full-screen layouts that share the same runtime instance.
+
+## Core Concepts
+
+| Concept      | Responsibilities |
+|--------------|------------------|
+| **Screen**   | Declarative description of a full-screen experience. Identifies the global zone strategy to apply, provides a layout config, and exposes optional metadata (title, navigation hints, etc.). Screens do not own event logic directly. |
+| **Global Zone** | A runtime plugin that acts as a composition root for the screen. It owns the layout tree, registers child panels, and mediates events between the runtime and panels. Different strategies (chat, browser, dashboard) implement this behaviour. |
+| **Panel**    | Existing building block (zone + plugin) that renders a portion of the UI. Panels remain unaware of screens; the global zone decides which panels to instantiate and where they live. |
+| **Screen Manager** | Runtime extension that tracks the active screen, handles navigation (switching), and orchestrates lifecycle events (`ScreenWillAppear`, `ScreenDidDisappear`). Responsible for swapping the renderer/registry state when screens change. |
+
+## Flow Overview
+
+1. Application registers one or more `ScreenDefinition`s with the `ScreenManager`.
+2. At runtime start, the manager activates the initial screen:
+   - Instantiates the configured `GlobalZoneStrategy`.
+   - Hands its layout tree to the runtime.
+   - Registers child panels/plugins via the global zone.
+   - Emits lifecycle callbacks.
+3. Runtime events flow:
+   - `RoomRuntime` → `ScreenManager` → active `GlobalZone`.
+   - The global zone can handle events directly, translate them, or delegate to panels.
+   - Panels may bubble events back up (e.g., navigation requests) using an agreed protocol.
+4. Switching screens:
+   - Manager notifies current screen (`will_disappear`), tears down its panels if needed, swaps in the new layout/zone, then triggers `did_appear`.
+   - Registry/renderer refresh to reflect the new screen’s zone set.
+
+## Traits & APIs (MVP)
+
+```rust
+pub struct ScreenDefinition {
+    pub id: String,
+    pub title: String,
+    pub strategy: Box<dyn GlobalZoneStrategy>,
+    pub metadata: ScreenMetadata,
+}
+
+pub trait GlobalZoneStrategy {
+    fn layout(&self) -> LayoutTree;
+    fn register_panels(&mut self, runtime: &mut RoomRuntime) -> Result<()>;
+    fn handle_event(
+        &mut self,
+        ctx: &mut RuntimeContext,
+        event: &RuntimeEvent,
+    ) -> Result<EventFlow>;
+    fn on_lifecycle(&mut self, event: ScreenLifecycleEvent) -> Result<()>;
+}
+
+pub struct ScreenManager {
+    pub fn register_screen(&mut self, definition: ScreenDefinition);
+    pub fn activate(&mut self, screen_id: &str) -> Result<()>;
+    pub fn handle_event(&mut self, ctx: &mut RuntimeContext, event: &RuntimeEvent) -> Result<EventFlow>;
+}
+```
+
+Notes:
+- `ScreenManager` integrates with `RoomRuntime` (either via a helper plugin or by extending the runtime API) so the runtime loop calls `handle_event` after it constructs the per-frame `RuntimeContext`.
+- `ScreenLifecycleEvent` covers `WillAppear`, `DidAppear`, `WillDisappear`, `DidDisappear`.
+- `ScreenMetadata` can store navigation ordering, hotkeys, or app-defined data.
+
+## State & Shared Data
+
+- Reuse `SharedState` for panel-level sharing.
+- Provide a thin adapter `ScreenState` that namespaces keys per screen so switching does not clobber data.
+- Global zone strategies can opt into cross-screen state by using a shared key prefix (e.g., `app:global`).
+
+## Extensibility Hooks
+
+- **Global Zone Formats**: implement the strategy trait for patterns such as chat, file browser, multi-pane dashboards.
+- **Navigation**: expose a `ScreenNavigator` interface so global zones or panels can request screen switches (eg. `navigator.activate("settings")`).
+- **Future Work**: stack-based navigation, transitions/animations, nested screens, panel layout nesting.
+
+## Known Open Questions / Backlog
+
+- Whether screens should support push/pop in the MVP or if tab-style switching is enough.
+- Declarative vs. imperative specification of child panels (configuration structs vs. builder APIs).
+- How to represent async screen loading (e.g., waiting spinners) within the global zone.
+- Panel nesting or composite panels within a screen.
+
+## Risks & Challenges
+
+- **Layout churn**: switching screens replaces the active layout tree; ensure registry dirty flags reset cleanly or we risk flicker/duplicate renders.
+- **Plugin lifecycle**: panels reused across screens must clean up properly (shared state, focus), otherwise residual state could leak.
+- **Event storms**: global zones that rebroadcast every event to every panel may introduce redundant work—strategy implementations should short-circuit when possible.
+- **Interop with existing demos**: we must keep a compatibility path so single-screen apps continue to work until they opt in to screens.
+- **Testing complexity**: multi-screen flows require scripted tests to verify navigation, otherwise regressions will be hard to spot.
+
+## Performance Considerations
+
+- **Screen switch cost**: aim to reuse buffers where possible—avoid rebuilding layouts/panels on every activation if the screen was previously instantiated.
+- **Render batching**: when a new screen activates, consolidate initial dirty zones into a single render pass to maintain the “zippy” feel.
+- **Shared state access**: `ScreenState` wrapper should be lightweight; avoid extra locking/allocations compared to `SharedState`.
+- **Audit & logging**: keep audit helpers screen-aware without duplicating events for every panel to prevent log spam.
+- **Hot path impact**: ensure event routing through the screen manager remains inlined/minimal so per-frame overhead stays negligible.
+
+Keep this document updated as we validate the approach and discover new patterns.

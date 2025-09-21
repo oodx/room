@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use room_mvp::runtime::audit::{RuntimeAudit, RuntimeAuditEvent};
+use room_mvp::runtime::audit::{BootstrapAudit, RuntimeAudit, RuntimeAuditEvent};
 use room_mvp::{
     AnsiRenderer, CliDriver, Constraint, Direction, LayoutNode, LayoutTree, Result, RoomPlugin,
     RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent, Size,
@@ -21,7 +21,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let renderer = AnsiRenderer::with_default();
     let mut config = RuntimeConfig::default();
     config.tick_interval = Duration::from_secs(10);
-    config.audit = Some(Arc::new(PrintAudit));
+    let audit = BootstrapAudit::new(Arc::new(PrintAudit));
+    config.audit = Some(audit);
 
     let mut runtime = RoomRuntime::with_config(layout, renderer, Size::new(80, 10), config)?;
     runtime.register_plugin(StaticBanner::default());

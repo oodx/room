@@ -3,7 +3,9 @@ use std::sync::{Arc, Mutex};
 
 use boxy::{BoxColors, BoxyConfig, WidthConfig, render_to_string};
 use crossterm::event::KeyCode;
-use room_mvp::runtime::audit::{RuntimeAudit, RuntimeAuditEvent, RuntimeAuditStage};
+use room_mvp::runtime::audit::{
+    BootstrapAudit, RuntimeAudit, RuntimeAuditEvent, RuntimeAuditStage,
+};
 use room_mvp::{
     AnsiRenderer, Constraint, Direction, EventFlow, LayoutNode, LayoutTree, Result, RoomPlugin,
     RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent, Size,
@@ -27,7 +29,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let renderer = AnsiRenderer::with_default();
     let mut config = RuntimeConfig::default();
     let audit_events = Arc::new(Mutex::new(VecDeque::<AuditRecord>::new()));
-    config.audit = Some(Arc::new(BufferAudit::new(audit_events.clone())));
+    let audit = BootstrapAudit::new(Arc::new(BufferAudit::new(audit_events.clone())));
+    config.audit = Some(audit);
 
     let mut runtime = RoomRuntime::with_config(layout, renderer, Size::new(100, 24), config)?;
     runtime.register_plugin(AuditViewer::new(audit_events));
@@ -132,7 +135,7 @@ impl RoomPlugin for AuditViewer {
     fn before_render(&mut self, ctx: &mut RuntimeContext<'_>) -> Result<()> {
         if !self.stream_started {
             self.stream_started = true;
-        ctx.set_zone_pre_rendered(AUDIT_ZONE, self.render_placeholder(ctx));
+            ctx.set_zone_pre_rendered(AUDIT_ZONE, self.render_placeholder(ctx));
             return Ok(());
         }
         ctx.set_zone_pre_rendered(AUDIT_ZONE, self.render(ctx));

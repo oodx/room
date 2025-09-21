@@ -1,20 +1,20 @@
-🎯 CURRENT FOCUS: Integrate the runtime audit hooks + first-paint helpers, and finish the doc/reference sweep.
+🎯 CURRENT FOCUS: Integrate the runtime audit hooks + first-paint helpers, finish the doc/reference sweep, and socialize bootstrap/cursor utilities.
 
 📊 PROJECT STATUS
 - ✅ Layout engine + runtime plugins (Phase 1 complete, Phase 2 partially delivered)
 - ✅ Audit module + demos (runtime_first_paint, audit_demo) landed
-- ⬆️ Next major push: Bootstrap/focus helpers (ROOM-612/613) and doc sweep
+- ⬆️ Next major push: Focus defaults (ROOM-613), bootstrap control adoption, and doc sweep
 
 🚨 CRITICAL CONTEXT
-- Audit sink now fires frequently—use the planned bootstrap helper (ROOM-612) to gate streaming once implemented.
+- Audit sinks should opt into the new audit + control helpers (ROOM-612) so streams stay silent until the first render commits; pair with cursor helpers when printing captures.
 - `examples/audit_demo.rs` renders a placeholder first; confirm ANSI output looks good before logging issues.
 - Validator still targets Room docs; treat any new warnings as blockers for handoff.
 - Active Phase: Runtime & Plugin Phase 2, observability polish + doc hygiene.
 
 📋 ACTIVE TASKS (see docs/procs/SPRINT.txt for detail)
 1. Finish the doc/reference sweep and record the clean pass. ✅
-2. Spec/implement bootstrap helper (ROOM-612) + default focus wiring (ROOM-613).
-3. Exercise audit demos across terminals; log any rendering issues.
+2. Spec default focus wiring (ROOM-613) and start migrating demos/tests to the bootstrap + cursor helpers where useful.
+3. Exercise audit demos plus the new `bootstrap_helper`/`workshop_room_bootstrap` examples across terminals; log any rendering issues.
 4. Keep CONTINUE/QUICK_REF aligned whenever sprint priorities shift.
 
 🏗️ ARCHITECTURE SNAPSHOT

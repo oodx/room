@@ -98,15 +98,49 @@
 - Align rsb crates with latest 0.2.18 release while keeping local overrides where required.
 - Verify Boxy/git integration remains stable after bumps and rerun `cargo check` on examples/benches.
 
-### [ ] ROOM-612: Runtime bootstrap helpers [2 pts]
-- Provide helper(s) on `RoomRuntime` to force an initial render/tick, optionally wait for N ticks, or gate on first key input.
-- Update examples to opt into the bootstrap helper so first-run renders never start blank.
-- Document usage alongside existing driver/bundle guidance.
+### [x] ROOM-612: Runtime bootstrap helpers [2 pts]
+- Provide helper(s) on `RoomRuntime` to force an initial render/tick, optionally wait for N ticks, or gate on first key input. ✅ (`BootstrapControls` with tick + key gating)
+- Update examples to opt into the bootstrap helper so first-run renders never start blank. ✅ (`audit_demo`, `runtime_first_paint`, `bootstrap_helper`)
+- Document usage alongside existing driver/bundle guidance. ✅ (`docs/ref/RUNTIME_STRAT.md` section)
 
 ### [ ] ROOM-613: Focus defaults & prompt detection [2 pts]
 - Extend Focus API/runtime config so callers can declare a default focus zone (e.g., decorated prompt) during bootstrap.
 - Ensure bundles/examples can mark prompt zones for immediate focus without manual wiring.
 - Capture best practices for focus transitions in `docs/ref/CORE_PLUGIN_STRATEGY.txt`.
+
+### [ ] SCREEN-101: Screen/global zone architecture spec [2 pts]
+- Finalize the Screen + GlobalZone strategy doc (SCREEN_ZONE_STRAT) with lifecycle diagrams and update plan.
+- Identify integration points with `RoomRuntime` and outline migration steps for existing demos.
+
+### [ ] SCREEN-102: Screen manager implementation [5 pts]
+- Implement `ScreenManager` with registration, activation, and lifecycle notifications.
+- Wire manager into `RoomRuntime` event dispatch/render pipelines with feature flag or config toggle.
+- Add smoke tests covering screen switching and layout swaps.
+
+### [ ] SCREEN-103: Global zone strategy trait + default implementation [3 pts]
+- Define `GlobalZoneStrategy` trait (layout provisioning, panel registration, event mediation).
+- Ship a blank/default strategy that simply hosts existing panels for backward compatibility.
+- Ensure audit/bootstrap helpers work unchanged under the new layer.
+
+### [ ] SCREEN-104: Screen-scoped state adapter [2 pts]
+- Build `ScreenState` wrapper on top of `SharedState` with per-screen namespaces.
+- Provide ergonomics for sharing data across screens when needed.
+- Document usage in strategy reference material.
+
+### [ ] SCREEN-105: Navigation & event routing [3 pts]
+- Design a screen navigation API (command dispatcher / navigator helper) and map default key bindings.
+- Ensure events bubble from panels → global zone → screen manager predictably.
+- Cover edge cases (unknown screen id, rapid toggles) with tests.
+
+### [ ] SCREEN-106: Multi-screen workshop & example [2 pts]
+- Create an example/workshop demonstrating two screens (e.g., dashboard vs. settings) with runtime switching.
+- Update documentation and QUICK_REF to highlight multi-screen capabilities.
+- Capture follow-up learnings/new patterns in SCREEN_ZONE_STRAT.
+
+### [x] WORKSHOP-203: Runtime bootstrap & cleanup flow [1 pt]
+- Add a guided workshop that captures the first render, streams audit events, and exits cleanly. ✅ (`examples/workshop_room_bootstrap.rs`)
+- Document the flow and cursor helper usage in `docs/ref/workshops/workshop_room_bootstrap.md`. ✅
+- Ensure helper utilities (`cursor`, `BootstrapControls`) are exercised in examples/tests.
 
 ## MILESTONE 8: Declarative Layout & Examples (Priority: MEDIUM)
 

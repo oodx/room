@@ -158,7 +158,11 @@ impl<'a> RuntimeContext<'a> {
     }
 
     /// Queue pre-rendered content for a zone. The renderer will blit it verbatim.
-    pub fn set_zone_pre_rendered(&mut self, zone_id: impl Into<String>, content: impl Into<String>) {
+    pub fn set_zone_pre_rendered(
+        &mut self,
+        zone_id: impl Into<String>,
+        content: impl Into<String>,
+    ) {
         self.zone_updates.push(ZoneUpdate {
             zone: zone_id.into(),
             content: content.into(),
@@ -432,6 +436,18 @@ impl RoomRuntime {
         Ok(())
     }
 
+    /// Obtain fine-grained control over the bootstrap phase without automatically forcing
+    /// the first render. The returned handle exposes helpers to present the initial frame,
+    /// pump synthetic ticks, or gate startup on high-level events before handing execution
+    /// back to a driver.
+    pub fn bootstrap_controls<'a, W: Write>(
+        &'a mut self,
+        stdout: &'a mut W,
+    ) -> Result<BootstrapControls<'a, W>> {
+        self.bootstrap_prepare()?;
+        Ok(BootstrapControls::new(self, stdout))
+    }
+
     fn dispatch_event(&mut self, event: RuntimeEvent) -> Result<()> {
         let mut consumed = false;
         let mut consumed_by: Option<String> = None;
@@ -600,6 +616,11 @@ impl RoomRuntime {
     }
 
     fn bootstrap(&mut self, stdout: &mut impl Write) -> Result<()> {
+        self.bootstrap_prepare()?;
+        self.render_if_needed(stdout)
+    }
+
+    fn bootstrap_prepare(&mut self) -> Result<()> {
         self.should_exit = false;
         self.redraw_requested = true;
         self.ensure_metrics_initialized();
@@ -640,8 +661,7 @@ impl RoomRuntime {
                 .detail("priority", json!(priority));
             self.audit_record_event(builder.finish());
         }
-
-        self.render_if_needed(stdout)
+        Ok(())
     }
 
     fn finalize(&mut self) {
@@ -761,5 +781,197 @@ impl RoomRuntime {
             RuntimeEvent::Resize(_) => "resize",
             RuntimeEvent::Raw(_) => "raw",
         }
+    }
+}
+
+/// Controller returned by `RoomRuntime::bootstrap_controls` so callers can synchronously
+/// drive the runtime through bootstrap experiments before handing execution to a driver.
+pub struct BootstrapControls<'a, W: Write> {
+    runtime: &'a mut RoomRuntime,
+    stdout: &'a mut W,
+    first_frame_presented: bool,
+}
+
+impl<'a, W: Write> BootstrapControls<'a, W> {
+    fn new(runtime: &'a mut RoomRuntime, stdout: &'a mut W) -> Self {
+        Self {
+            runtime,
+            stdout,
+            first_frame_presented: false,
+        }
+    }
+
+    /// Present the first frame if it has not yet been rendered.
+    pub fn present_first_frame(&mut self) -> Result<()> {
+        if !self.first_frame_presented {
+            self.runtime.render_if_needed(self.stdout)?;
+            self.first_frame_presented = true;
+        }
+        Ok(())
+    }
+
+    /// Ensure at least one render has occurred, calling `present_first_frame` if necessary.
+    pub fn ensure_first_frame(&mut self) -> Result<()> {
+        if !self.first_frame_presented {
+            self.present_first_frame()?;
+        }
+        Ok(())
+    }
+
+    /// Dispatch a runtime event and render any resulting updates.
+    pub fn dispatch_event(&mut self, event: RuntimeEvent) -> Result<()> {
+        let event = match event {
+            RuntimeEvent::Resize(size) => {
+                self.runtime.handle_resize(size)?;
+                RuntimeEvent::Resize(size)
+            }
+            other => other,
+        };
+        self.runtime.dispatch_event(event)?;
+        self.runtime.render_if_needed(self.stdout)?;
+        self.first_frame_presented = true;
+        Ok(())
+    }
+
+    /// Dispatch a synthetic tick event and render any resulting updates.
+    pub fn dispatch_tick(&mut self, elapsed: Duration) -> Result<()> {
+        self.runtime
+            .dispatch_event(RuntimeEvent::Tick { elapsed })?;
+        self.runtime
+            .audit_record(RuntimeAuditStage::TickDispatched, []);
+        self.runtime.render_if_needed(self.stdout)?;
+        self.first_frame_presented = true;
+        Ok(())
+    }
+
+    /// Pump the runtime for a fixed number of synthetic ticks.
+    pub fn run_ticks(&mut self, count: usize, interval: Duration) -> Result<()> {
+        for _ in 0..count {
+            self.dispatch_tick(interval)?;
+        }
+        Ok(())
+    }
+
+    /// Gate bootstrap on the first key event returned by the supplied provider. The
+    /// provider is typically a thin wrapper over `crossterm::event::poll` + `read` that
+    /// yields high-level runtime events.
+    pub fn gate_on_first_key_event<F>(&mut self, mut next_event: F) -> Result<()>
+    where
+        F: FnMut() -> Result<Option<RuntimeEvent>>,
+    {
+        loop {
+            let maybe_event = next_event()?;
+            let Some(event) = maybe_event else {
+                continue;
+            };
+            let is_key = matches!(event, RuntimeEvent::Key(_));
+            self.dispatch_event(event)?;
+            if is_key {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    /// Finalise bootstrap, ensuring the first frame is presented before returning the
+    /// underlying runtime and writer handles.
+    pub fn finish_with_handles(mut self) -> Result<(&'a mut RoomRuntime, &'a mut W)> {
+        self.ensure_first_frame()?;
+        let runtime = self.runtime;
+        let stdout = self.stdout;
+        Ok((runtime, stdout))
+    }
+
+    /// Finalise bootstrap, ensuring the first frame is presented before dropping the
+    /// controller.
+    pub fn finish(mut self) -> Result<()> {
+        self.ensure_first_frame()
+    }
+}
+
+#[cfg(test)]
+mod bootstrap_tests {
+    use super::*;
+    use crate::{
+        AnsiRenderer, Constraint, Direction, LayoutNode, LayoutTree, RoomPlugin, RuntimeConfig,
+        Size,
+    };
+    use std::time::Duration;
+
+    const TEST_ZONE: &str = "app:test";
+
+    #[derive(Default)]
+    struct TestPlugin {
+        ticks: usize,
+    }
+
+    impl RoomPlugin for TestPlugin {
+        fn name(&self) -> &str {
+            "test_plugin"
+        }
+
+        fn init(&mut self, ctx: &mut RuntimeContext<'_>) -> Result<()> {
+            ctx.set_zone(TEST_ZONE, "Bootstrap starting");
+            Ok(())
+        }
+
+        fn on_event(
+            &mut self,
+            ctx: &mut RuntimeContext<'_>,
+            event: &RuntimeEvent,
+        ) -> Result<EventFlow> {
+            if matches!(event, RuntimeEvent::Tick { .. }) {
+                self.ticks += 1;
+                ctx.set_zone(TEST_ZONE, format!("Ticks observed: {}", self.ticks));
+            }
+            if matches!(event, RuntimeEvent::Key(_)) {
+                ctx.set_zone(TEST_ZONE, "Key received");
+            }
+            Ok(EventFlow::Continue)
+        }
+    }
+
+    fn build_runtime() -> RoomRuntime {
+        let layout = LayoutTree::new(LayoutNode {
+            id: "app:root".into(),
+            direction: Direction::Column,
+            constraints: vec![Constraint::Flex(1)],
+            children: vec![LayoutNode::leaf(TEST_ZONE)],
+            gap: 0,
+            padding: 0,
+        });
+        let renderer = AnsiRenderer::with_default();
+        let config = RuntimeConfig::default();
+        let mut runtime =
+            RoomRuntime::with_config(layout, renderer, Size::new(40, 4), config).expect("runtime");
+        runtime.register_plugin(TestPlugin::default());
+        runtime
+    }
+
+    #[test]
+    fn present_first_frame_renders_content() {
+        let mut runtime = build_runtime();
+        let mut buffer = Vec::new();
+        {
+            let mut controls = runtime.bootstrap_controls(&mut buffer).expect("controls");
+            controls.present_first_frame().expect("render");
+            controls.finish().expect("finish");
+        }
+        assert!(!buffer.is_empty(), "bootstrap render should write output");
+    }
+
+    #[test]
+    fn run_ticks_updates_plugin_state() {
+        let mut runtime = build_runtime();
+        let mut buffer = Vec::new();
+        {
+            let mut controls = runtime.bootstrap_controls(&mut buffer).expect("controls");
+            controls
+                .run_ticks(3, Duration::from_millis(10))
+                .expect("ticks");
+            controls.finish().expect("finish");
+        }
+        let output = String::from_utf8(buffer).expect("utf8");
+        assert!(output.contains("Ticks observed: 3"));
     }
 }

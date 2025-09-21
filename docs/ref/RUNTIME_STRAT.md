@@ -83,6 +83,21 @@ Different binaries instantiate the runtime with different stacks:
 Because all drivers funnel through the same runtime lifecycle, features remain
 portable.
 
+### Bootstrap Helpers
+
+- `BootstrapAudit`: Wrap any audit sink to buffer lifecycle events until the
+  first render (or an override stage) so demos/tests do not spam logs before the
+  UI appears. All runtime examples should opt into this helper by default.
+- `BootstrapControls`: Request fine-grained control over bootstrap without
+  immediately presenting the first frame. Callers can present or delay the
+  initial render, pump a fixed number of synthetic ticks, or gate startup on the
+  first key event before resuming the normal driver flow. See
+  `examples/bootstrap_helper.rs` for a scripted usage pattern and migrate new
+  demos/tests through this API as they land.
+- `cursor` utilities: Use helpers such as `move_down_lines` or `move_to` to
+  reposition the terminal cursor after printing captured frames so prompts stay
+  tidy when the runtime exits.
+
 ## Declarative Layout Plan
 
 Introduce a DSL (working name `layout-html`) that compiles into a

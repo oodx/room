@@ -23,8 +23,10 @@ pub use logging::{LogEvent, LogFields, LogLevel, Logger, LoggingError, LoggingRe
 pub use metrics::{MetricSnapshot, RuntimeMetrics};
 pub use registry::{ZoneContent, ZoneId, ZoneRegistry};
 pub use render::{AnsiRenderer, RendererSettings};
+pub use runtime::BootstrapControls;
 pub use runtime::audit::{
-    NullRuntimeAudit, RuntimeAudit, RuntimeAuditEvent, RuntimeAuditEventBuilder, RuntimeAuditStage,
+    BootstrapAudit, NullRuntimeAudit, RuntimeAudit, RuntimeAuditEvent, RuntimeAuditEventBuilder,
+    RuntimeAuditStage,
 };
 pub use runtime::bundles::{
     DEFAULT_HINTS_ZONE, DEFAULT_INPUT_ZONE, DEFAULT_STATUS_ZONE, DefaultCliBundleConfig,
@@ -43,3 +45,4 @@ pub use runtime::{
 };
 pub use tokens::{ZoneTokenRouter, ZoneTokenUpdate};
 pub use width::display_width;
+pub mod cursor;
