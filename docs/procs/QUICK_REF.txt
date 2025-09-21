@@ -1,21 +1,21 @@
-🎯 CURRENT FOCUS: Validate the new pre-rendered Boxy support and finish normalising Room documentation references.
+🎯 CURRENT FOCUS: Integrate the runtime audit hooks + first-paint helpers, and finish the doc/reference sweep.
 
 📊 PROJECT STATUS
 - ✅ Layout engine + runtime plugins (Phase 1 complete, Phase 2 partially delivered)
-- ✅ Meta-process scaffold landed (directory migration, START/PROCESS/QUICK_REF seeded)
-- ⬆️ Next major push: Observability & declarative layout groundwork once doc hygiene is stable
+- ✅ Audit module + demos (runtime_first_paint, audit_demo) landed
+- ⬆️ Next major push: Bootstrap/focus helpers (ROOM-612/613) and doc sweep
 
 🚨 CRITICAL CONTEXT
-- Boxy panels now register pre-rendered frames; run existing examples (dashboard, workshops, audit) to confirm terminal behaviour across environments.
+- Audit sink now fires frequently—use the planned bootstrap helper (ROOM-612) to gate streaming once implemented.
+- `examples/audit_demo.rs` renders a placeholder first; confirm ANSI output looks good before logging issues.
 - Validator still targets Room docs; treat any new warnings as blockers for handoff.
-- MVP boundary unchanged: prioritise runtime stability + documentation discipline before new feature work.
-- Active Phase: Runtime & Plugin Phase 2 polish with process enforcement.
+- Active Phase: Runtime & Plugin Phase 2, observability polish + doc hygiene.
 
 📋 ACTIVE TASKS (see docs/procs/SPRINT.txt for detail)
-1. Sweep remaining docs/examples for legacy `docs/` references and update as needed. ✅
-2. Track Boxy workshop defects via WORKSHOP-201A and plan fixes; new grid workshop (202) is ready.
-3. Keep CONTINUE/QUICK_REF aligned whenever sprint priorities shift.
-4. Prepare acceptance notes so meta-process work can be moved into DONE once the validator remains green.
+1. Finish the doc/reference sweep and record the clean pass. ✅
+2. Spec/implement bootstrap helper (ROOM-612) + default focus wiring (ROOM-613).
+3. Exercise audit demos across terminals; log any rendering issues.
+4. Keep CONTINUE/QUICK_REF aligned whenever sprint priorities shift.
 
 🏗️ ARCHITECTURE SNAPSHOT
 - Primary modules: `src/runtime`, `src/layout`, `src/render`, `src/registry`
