@@ -1,6 +1,7 @@
 # Continue Log – main · Meta-Process Rollout
 
 ## Summary
+- Landed pre-rendered Boxy support so Room no longer re-wraps panel frames; updated workshops and dashboard examples to use the new path.
 - Documented validator maintenance expectations in `docs/procs/PROCESS.txt` and confirmed the script remains silent-success.
 - Scaffolded meta-process layout: created `docs/procs/`, `docs/ref/`, and `.analysis/` directories.
 - Migrated roadmap, tasks, backlog, and reference notes into the new structure.
@@ -15,12 +16,13 @@
 ## Current Status
 - **Branch**: main
 - **Phase**: Runtime & Plugin Phase 2 (process rehydration focus)
-- **Progress**: Directory migration and validator complete; analysis snapshots seeded; workshop backlog entries captured; reference sweep still in progress.
+- **Progress**: Pre-rendered Boxy flow in place; directory migration and validator complete; analysis snapshots seeded; workshop backlog entries captured; reference sweep still in progress.
 
 ## Next Steps (Priority Order)
 1. Start WORKSHOP-301 (First Paint Performance) planning, mirroring the pattern used for workshops 101/201.
-2. Keep the validator running clean after each doc change; record outcomes in DONE.
+2. Wire the new pre-render API into any remaining Boxy surfaces (prompt overlays, future panels) and monitor perf impacts once benches run.
 3. Finish the lingering reference sweep so no stale pointers remain outside the core process docs.
+4. Keep the validator running clean after each doc change; record outcomes in DONE.
 
 ## Blockers / Risks
 - Residual stale references may exist outside the primary process docs; they could confuse the next agent if left unchecked.
