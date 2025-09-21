@@ -112,11 +112,11 @@
 	- Finalize the Screen + GlobalZone strategy doc (`docs/ref/strat/SCREEN_ZONE_STRATEGY.md`) with lifecycle diagrams and update plan. ✅
 	- Identify integration points with `RoomRuntime` and outline migration steps for existing demos. ✅
 
-### [~] SCREEN-102: Screen manager implementation [5 pts]
+### [x] SCREEN-102: Screen manager implementation [5 pts]
 - Implement `ScreenManager` with registration, activation, and lifecycle notifications.
 - Wire manager into `RoomRuntime` event dispatch/render pipelines with feature flag or config toggle.
 - Add smoke tests covering screen switching and layout swaps.
-- Legacy strategy landed and `chat_demo`, `audit_demo`, `boxy_dashboard_runtime`, `control_room`, `runtime_first_paint`, `bootstrap_helper`, `workshop_room_bootstrap`, and `chat_workshop` now activate the manager on startup; migrate remaining demos and add focused tests before closing.
+- Legacy strategy landed and all runtime-driven demos (`chat_demo`, `audit_demo`, `boxy_dashboard_runtime`, `boxy_dashboard`, `control_room`, `runtime_first_paint`, `bootstrap_helper`, `workshop_room_bootstrap`, `chat_workshop`) now activate the manager on startup; focused tests live in `runtime::screens` to guard activation.
 
 ### [ ] SCREEN-103: Global zone strategy trait + default implementation [3 pts]
 - Define `GlobalZoneStrategy` trait (layout provisioning, panel registration, event mediation).
