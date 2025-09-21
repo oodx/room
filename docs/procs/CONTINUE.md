@@ -12,7 +12,7 @@
 - Finalised the SCREEN-101 spec with lifecycle diagrams, risks, and migration plan (`docs/ref/strat/SCREEN_ZONE_STRATEGY.md`).
 - Scaffolded the `ScreenManager` (SCREEN-102) with activation APIs, lifecycle hooks, and event routing while keeping single-screen flows intact.
 - Added a `LegacyScreenStrategy`, exported the toolkit, and updated `chat_demo` to activate the screen manager during startup to prove the legacy flow survives.
-- Migrated `audit_demo`, `boxy_dashboard_runtime`, `control_room`, `runtime_first_paint`, `bootstrap_helper`, and `workshop_room_bootstrap` to the legacy screen strategy and confirmed they compile via `bin/examples.sh` so scripted launches keep working.
+- Migrated `audit_demo`, `boxy_dashboard_runtime`, `control_room`, `runtime_first_paint`, `bootstrap_helper`, `workshop_room_bootstrap`, and `chat_workshop` to the legacy screen strategy and confirmed they compile via `bin/examples.sh` so scripted launches keep working.
 - Validator still passes; process docs remain the single entry points (START/PROCESS/QUICK_REF updated).
 
 ## Current Status
