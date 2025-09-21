@@ -129,7 +129,7 @@ pub enum EventFlow {
 pub struct RuntimeContext<'a> {
     rects: &'a HashMap<String, Rect>,
     shared_state: &'a shared_state::SharedState,
-    zone_updates: Vec<(String, String)>,
+    zone_updates: Vec<ZoneUpdate>,
     redraw_requested: bool,
     exit_requested: bool,
     cursor_hint: Option<(u16, u16)>,
@@ -149,7 +149,21 @@ impl<'a> RuntimeContext<'a> {
 
     /// Queue new content for a zone. The update is applied after the plugin completes.
     pub fn set_zone(&mut self, zone_id: impl Into<String>, content: impl Into<String>) {
-        self.zone_updates.push((zone_id.into(), content.into()));
+        self.zone_updates.push(ZoneUpdate {
+            zone: zone_id.into(),
+            content: content.into(),
+            pre_rendered: false,
+        });
+        self.redraw_requested = true;
+    }
+
+    /// Queue pre-rendered content for a zone. The renderer will blit it verbatim.
+    pub fn set_zone_pre_rendered(&mut self, zone_id: impl Into<String>, content: impl Into<String>) {
+        self.zone_updates.push(ZoneUpdate {
+            zone: zone_id.into(),
+            content: content.into(),
+            pre_rendered: true,
+        });
         self.redraw_requested = true;
     }
 
@@ -204,10 +218,16 @@ impl<'a> RuntimeContext<'a> {
 }
 
 struct ContextOutcome {
-    zone_updates: Vec<(String, String)>,
+    zone_updates: Vec<ZoneUpdate>,
     redraw_requested: bool,
     exit_requested: bool,
     cursor_hint: Option<(u16, u16)>,
+}
+
+struct ZoneUpdate {
+    zone: String,
+    content: String,
+    pre_rendered: bool,
 }
 
 /// Behaviour injection point for the runtime.
@@ -516,8 +536,17 @@ impl RoomRuntime {
 
         let update_count = zone_updates.len();
         if update_count > 0 {
-            for (zone, content) in zone_updates {
-                self.registry.apply_content(&zone, content)?;
+            for update in zone_updates {
+                let ZoneUpdate {
+                    zone,
+                    content,
+                    pre_rendered,
+                } = update;
+                if pre_rendered {
+                    self.registry.apply_pre_rendered(&zone, content)?;
+                } else {
+                    self.registry.apply_content(&zone, content)?;
+                }
             }
             self.record_zone_updates_metric(update_count);
             self.redraw_requested = true;

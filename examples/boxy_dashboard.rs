@@ -371,17 +371,17 @@ fn render_state(
         tick
     );
 
-    registry.apply_content(&HEADER_ZONE.to_string(), header_text.clone())?;
+    registry.apply_pre_rendered(&HEADER_ZONE.to_string(), header_text.clone())?;
 
     let rendered_panels: Vec<String> = panels
         .iter_mut()
         .map(|panel| panel.render().to_string())
         .collect();
     for (panel, rendered) in panels.iter().zip(rendered_panels.iter()) {
-        registry.apply_content(&panel.id().to_string(), rendered.clone())?;
+        registry.apply_pre_rendered(&panel.id().to_string(), rendered.clone())?;
     }
 
-    registry.apply_content(&FOOTER_ZONE.to_string(), footer_text.clone())?;
+    registry.apply_pre_rendered(&FOOTER_ZONE.to_string(), footer_text.clone())?;
 
     if let Some(rect) = registry
         .rect_of(&panels[focused].id().to_string())

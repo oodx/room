@@ -489,10 +489,10 @@ impl BoxyDashboardPlugin {
 
         for panel in &mut self.panels {
             let rendered = panel.render().to_string();
-            ctx.set_zone(panel.id(), rendered);
+            ctx.set_zone_pre_rendered(panel.id(), rendered);
         }
 
-        ctx.set_zone(PROMPT_ZONE, self.prompt.render());
+        ctx.set_zone_pre_rendered(PROMPT_ZONE, self.prompt.render());
 
         let focus_label = match self.current_slot() {
             FocusSlot::Panel(i) => self.panels[i].id(),

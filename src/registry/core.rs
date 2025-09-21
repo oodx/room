@@ -16,6 +16,7 @@ pub struct ZoneState {
     pub content: ZoneContent,
     hash: Option<Hash>,
     pub is_dirty: bool,
+    pub is_pre_rendered: bool,
 }
 
 impl ZoneState {
@@ -25,6 +26,7 @@ impl ZoneState {
             content: ZoneContent::new(),
             hash: None,
             is_dirty: true,
+            is_pre_rendered: false,
         }
     }
 
@@ -34,6 +36,7 @@ impl ZoneState {
             self.content = content;
             self.hash = Some(new_hash);
             self.is_dirty = true;
+            self.is_pre_rendered = false;
         }
     }
 }
@@ -98,6 +101,18 @@ impl ZoneRegistry {
         if entry.is_dirty {
             self.dirty.insert(zone_id.clone());
         }
+        Ok(())
+    }
+
+    pub fn apply_pre_rendered(&mut self, zone_id: &ZoneId, content: ZoneContent) -> Result<()> {
+        let entry = self
+            .entries
+            .get_mut(zone_id)
+            .ok_or_else(|| LayoutError::ZoneNotFound(zone_id.clone()))?;
+        entry.update_content(content);
+        entry.is_pre_rendered = true;
+        entry.is_dirty = true;
+        self.dirty.insert(zone_id.clone());
         Ok(())
     }
 

@@ -113,7 +113,7 @@ impl RoomPlugin for AuditViewer {
     }
 
     fn init(&mut self, ctx: &mut RuntimeContext<'_>) -> Result<()> {
-        ctx.set_zone(AUDIT_ZONE, self.render(ctx));
+        ctx.set_zone_pre_rendered(AUDIT_ZONE, self.render(ctx));
         Ok(())
     }
 
@@ -132,10 +132,10 @@ impl RoomPlugin for AuditViewer {
     fn before_render(&mut self, ctx: &mut RuntimeContext<'_>) -> Result<()> {
         if !self.stream_started {
             self.stream_started = true;
-            ctx.set_zone(AUDIT_ZONE, self.render_placeholder(ctx));
+        ctx.set_zone_pre_rendered(AUDIT_ZONE, self.render_placeholder(ctx));
             return Ok(());
         }
-        ctx.set_zone(AUDIT_ZONE, self.render(ctx));
+        ctx.set_zone_pre_rendered(AUDIT_ZONE, self.render(ctx));
         Ok(())
     }
 }

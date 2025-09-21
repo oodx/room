@@ -63,7 +63,16 @@ fn render_zone(writer: &mut impl Write, state: &ZoneState) -> Result<()> {
         return Ok(());
     }
 
-    let mut rendered_lines = wrap_to_width(&state.content, width);
+    let mut rendered_lines = if state.is_pre_rendered {
+        state
+            .content
+            .lines()
+            .map(|line| line.to_string())
+            .collect::<Vec<_>>()
+    } else {
+        wrap_to_width(&state.content, width)
+    };
+
     if rendered_lines.len() > height as usize {
         rendered_lines.truncate(height as usize);
     }

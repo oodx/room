@@ -196,7 +196,7 @@ fn render_grid_preview(
                 ..WidthConfig::default()
             };
             config.fixed_height = Some(rect.height.max(4) as usize);
-            registry.apply_content(&panel.zone_id.to_string(), render_to_string(&config))?;
+            registry.apply_pre_rendered(&panel.zone_id.to_string(), render_to_string(&config))?;
         } else {
             println!("⚠️  missing rect for zone `{}`; skipping", panel.zone_id);
         }
