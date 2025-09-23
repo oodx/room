@@ -117,7 +117,24 @@ impl ZoneRegistry {
     }
 
     pub fn take_dirty(&mut self) -> Vec<(ZoneId, ZoneState)> {
-        let ids: Vec<_> = self.dirty.drain().collect();
+        let mut ids: Vec<_> = self.dirty.drain().collect();
+        ids.sort_by(|a, b| {
+            let rect_a = self
+                .entries
+                .get(a)
+                .map(|state| state.rect)
+                .unwrap_or(Rect::new(0, 0, 0, 0));
+            let rect_b = self
+                .entries
+                .get(b)
+                .map(|state| state.rect)
+                .unwrap_or(Rect::new(0, 0, 0, 0));
+            rect_a
+                .y
+                .cmp(&rect_b.y)
+                .then_with(|| rect_a.x.cmp(&rect_b.x))
+                .then_with(|| a.cmp(b))
+        });
         ids.into_iter()
             .filter_map(|id| {
                 self.entries.get_mut(&id).map(|state| {
