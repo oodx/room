@@ -155,8 +155,8 @@ fn render_content_with_highlight(&self) -> String {
         }
 
         if idx == self.cursor_row {
-            let split_at = self.cursor_col.min(line.len());
-            let (left, right) = line.split_at(split_at);
+            let byte_idx = Self::byte_offset(line, self.cursor_col);
+            let (left, right) = line.split_at(byte_idx);
             buffer.push_str(left);
             buffer.push_str("\x1b[7m");
             if let Some(ch) = right.chars().next() {
@@ -183,6 +183,8 @@ fn update_all_zones(&self, ctx: &mut RuntimeContext) {
     }
 }
 ```
+
+Here `Self::byte_offset` converts the caret's character index into a byte offset so multi-byte glyphs survive the highlight without slicing them mid-code point.
 
 **Cursor Positioning:** Room's `set_cursor_hint()` expects **absolute screen coordinates**, not zone-relative:
 
