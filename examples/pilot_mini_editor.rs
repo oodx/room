@@ -210,7 +210,7 @@ impl EditorState {
     /// Generate status line - shows Room's real-time updates
     fn render_status(&self) -> String {
         format!(
-            " Line {}, Col {} | {} lines | v{} ",
+            "──[ Line {}, Col {} | {} lines | v{} | Ctrl+Q to quit ]──",
             self.cursor_row + 1,
             self.cursor_col + 1,
             self.lines.len(),
@@ -257,10 +257,10 @@ impl EditorCorePlugin {
 
     /// Set cursor position after content is rendered
     fn update_cursor_position(&self, ctx: &mut RuntimeContext) {
-        if let Ok(_state) = self.state.lock() {
-            // Set cursor to 0,0 initially to avoid offset issues
-            // Later we could use state.cursor_position() for proper positioning
-            ctx.set_cursor_hint(0, 0);
+        if let Ok(state) = self.state.lock() {
+            // Use actual cursor position from state
+            let (row, col) = state.cursor_position();
+            ctx.set_cursor_hint(row, col);
         }
     }
 }
