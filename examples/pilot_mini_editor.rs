@@ -271,9 +271,11 @@ impl EditorCorePlugin {
 
     /// Show the cursor once - CLI driver hides it by default
     fn show_cursor_once(&self, ctx: &mut RuntimeContext) {
-        // Use a hidden zone just to inject the cursor show command
-        // This ensures it only happens once at startup
-        ctx.set_zone("editor:cursor_show", cursor::show());
+        // Inject cursor show command into status zone content once at startup
+        if let Ok(state) = self.state.lock() {
+            let status_with_cursor = format!("{}{}", cursor::show(), state.render_status());
+            ctx.set_zone(STATUS_ZONE, status_with_cursor);
+        }
     }
 }
 
