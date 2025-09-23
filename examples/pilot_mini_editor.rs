@@ -255,18 +255,6 @@ impl EditorCorePlugin {
         }
     }
 
-    /// Update zones that change during editing (content and status only)
-    fn update_content_zones(&self, ctx: &mut RuntimeContext) {
-        if let Ok(state) = self.state.lock() {
-            // Update content zone without cursor markers
-            ctx.set_zone(CONTENT_ZONE, state.render_content());
-
-            // Update status zone
-            ctx.set_zone(STATUS_ZONE, state.render_status());
-
-            ctx.request_render();
-        }
-    }
 
     /// Set cursor position after content is rendered
     fn update_cursor_position(&self, ctx: &mut RuntimeContext) {
@@ -284,11 +272,10 @@ impl EditorCorePlugin {
 
     /// Show the cursor once - CLI driver hides it by default
     fn show_cursor_once(&self, ctx: &mut RuntimeContext) {
-        // Use line numbers zone for one-time cursor show injection
-        // Line numbers don't change during typing, so this won't get overwritten
+        // Inject cursor show command into status zone content once at startup
         if let Ok(state) = self.state.lock() {
-            let line_numbers_with_cursor = format!("{}{}", cursor::show(), state.render_line_numbers());
-            ctx.set_zone(LINE_NUMBERS_ZONE, line_numbers_with_cursor);
+            let status_with_cursor = format!("{}{}", cursor::show(), state.render_status());
+            ctx.set_zone(STATUS_ZONE, status_with_cursor);
         }
     }
 }
@@ -340,8 +327,7 @@ impl RoomPlugin for EditorCorePlugin {
                 drop(state);
 
                 // Update zones after state change - Room's reactive pattern
-                self.update_content_zones(ctx);
-                // Don't call show_cursor() on every keystroke - cursor is already shown
+                self.update_all_zones(ctx);
                 self.update_cursor_position(ctx);
                 return Ok(EventFlow::Consumed);
             }
