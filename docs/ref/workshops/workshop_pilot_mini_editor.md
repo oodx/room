@@ -144,19 +144,43 @@ fn enter(&self, stdout: &mut impl Write) -> DriverResult<()> {
 }
 ```
 
-**Solution:** Explicitly restore cursor visibility by injecting ANSI escape sequences:
+**Solution:** Keep the terminal cursor hidden and highlight the active cell with ANSI styling. Wrap the glyph under the caret in reverse video so the rendered width stays the same and the layout never shifts:
 
 ```rust
-fn show_cursor(&self, ctx: &mut RuntimeContext) {
-    let current_status = if let Ok(state) = self.state.lock() {
-        state.render_status()
-    } else {
-        String::new()
-    };
+fn render_content_with_highlight(&self) -> String {
+    let mut buffer = String::new();
+    for (idx, line) in self.lines.iter().enumerate() {
+        if idx > 0 {
+            buffer.push('\n');
+        }
 
-    // Prepend cursor show command to status zone content
-    let status_with_cursor = format!("{}{}", cursor::show(), current_status);
-    ctx.set_zone(STATUS_ZONE, status_with_cursor);
+        if idx == self.cursor_row {
+            let split_at = self.cursor_col.min(line.len());
+            let (left, right) = line.split_at(split_at);
+            buffer.push_str(left);
+            buffer.push_str("\x1b[7m");
+            if let Some(ch) = right.chars().next() {
+                buffer.push(ch);
+                buffer.push_str("\x1b[0m");
+                buffer.push_str(&right[ch.len_utf8()..]);
+            } else {
+                buffer.push(' ');
+                buffer.push_str("\x1b[0m");
+            }
+        } else {
+            buffer.push_str(line);
+        }
+    }
+    buffer
+}
+
+fn update_all_zones(&self, ctx: &mut RuntimeContext) {
+    if let Ok(state) = self.state.lock() {
+        ctx.set_zone(LINE_NUMBERS_ZONE, state.render_line_numbers());
+        ctx.set_zone_pre_rendered(CONTENT_ZONE, state.render_content_with_highlight());
+        ctx.set_zone(STATUS_ZONE, state.render_status());
+        ctx.request_render();
+    }
 }
 ```
 
@@ -168,13 +192,27 @@ fn update_cursor_position(&self, ctx: &mut RuntimeContext) {
         if let Some(content_rect) = ctx.rect(CONTENT_ZONE) {
             let (cursor_row, cursor_col) = state.cursor_position();
             // Convert zone-relative to absolute screen coordinates
-            let absolute_row = content_rect.y + cursor_row;
-            let absolute_col = content_rect.x + cursor_col;
+            let max_row = content_rect
+                .y
+                .saturating_add(content_rect.height.saturating_sub(1));
+            let max_col = content_rect
+                .x
+                .saturating_add(content_rect.width.saturating_sub(1));
+            let absolute_row = content_rect
+                .y
+                .saturating_add(cursor_row)
+                .min(max_row);
+            let absolute_col = content_rect
+                .x
+                .saturating_add(cursor_col)
+                .min(max_col);
             ctx.set_cursor_hint(absolute_row, absolute_col);
         }
     }
 }
 ```
+
+Clamping the hint ensures the (hidden) terminal cursor never escapes the solved rectangle, so the renderer restores it directly over the block caret.
 
 ### 5. First-Paint Lifecycle
 
@@ -188,7 +226,7 @@ fn update_cursor_position(&self, ctx: &mut RuntimeContext) {
 3. `CliDriver::run()` renders first frame
 4. Enter event loop for user interaction
 
-**No bootstrap_controls needed** for normal applications - that's for testing/scripting scenarios.
+Set `RuntimeConfig::tick_interval` to a predictable value (16 ms in the demo) and stage a couple of bootstrap ticks via `runtime.bootstrap_controls` before handing the runtime to `CliDriver`. That warm-up guarantees the first render commits with all zones populated before raw mode kicks in.
 
 ## Exercise Ideas
 

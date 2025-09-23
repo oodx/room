@@ -21,6 +21,7 @@
 //! - Ctrl+Q: Quit
 
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use room_mvp::{
@@ -42,8 +43,10 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let renderer = AnsiRenderer::with_default();
     let mut config = RuntimeConfig::default();
     config.default_focus_zone = Some(CONTENT_ZONE.to_string());
+    config.tick_interval = Duration::from_millis(16);
 
-    let mut runtime = RoomRuntime::with_config(layout.clone(), renderer, Size::new(100, 30), config)?;
+    let mut runtime =
+        RoomRuntime::with_config(layout.clone(), renderer, Size::new(100, 30), config)?;
 
     // Set up screen manager - REQUIRED for proper zone initialization
     let mut screen_manager = ScreenManager::new();
@@ -62,8 +65,17 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     // Don't use CLI bundle since we're handling everything ourselves
     // The CLI bundle would conflict with our custom input handling
 
-    // Run the main event loop with the driver
-    // The CliDriver will handle the first paint automatically
+    // Warm the runtime so first paint is staged deterministically before handing
+    // control to the CLI driver.
+    {
+        let mut bootstrap_capture = Vec::new();
+        let mut controls = runtime.bootstrap_controls(&mut bootstrap_capture)?;
+        controls.present_first_frame()?;
+        controls.run_ticks(2, Duration::from_millis(16))?;
+        controls.finish()?;
+    }
+
+    // Run the main event loop with the driver; it will re-bootstrap inside raw mode.
     CliDriver::new(runtime).run()?;
     Ok(())
 }
@@ -118,7 +130,7 @@ impl EditorState {
                 "Type to edit, arrow keys to navigate, Ctrl+Q to quit.".to_string(),
                 "".to_string(),
             ],
-            cursor_row: 0,  // Start at line 1 (0-indexed)
+            cursor_row: 0, // Start at line 1 (0-indexed)
             cursor_col: 0,
             version: 0,
         }
@@ -189,14 +201,39 @@ impl EditorState {
         }
     }
 
-    /// Generate content without cursor markers - let Room handle cursor positioning
-    fn render_content(&self) -> String {
-        self.lines.join("\n")
-    }
-
     /// Calculate cursor position relative to content zone
     fn cursor_position(&self) -> (u16, u16) {
         (self.cursor_row as u16, self.cursor_col as u16)
+    }
+
+    /// Produce display content with an ANSI-highlighted caret that preserves cell width.
+    fn render_content_with_highlight(&self) -> String {
+        let mut buffer = String::new();
+        for (idx, line) in self.lines.iter().enumerate() {
+            if idx > 0 {
+                buffer.push('\n');
+            }
+
+            if idx == self.cursor_row {
+                let split_at = self.cursor_col.min(line.len());
+                let (left, right) = line.split_at(split_at);
+                buffer.push_str(left);
+
+                // Highlight the glyph under the caret using reverse video.
+                buffer.push_str("\x1b[7m");
+                if let Some(ch) = right.chars().next() {
+                    buffer.push(ch);
+                    buffer.push_str("\x1b[0m");
+                    buffer.push_str(&right[ch.len_utf8()..]);
+                } else {
+                    buffer.push(' ');
+                    buffer.push_str("\x1b[0m");
+                }
+            } else {
+                buffer.push_str(line);
+            }
+        }
+        buffer
     }
 
     /// Generate line numbers - demonstrates independent zone updates
@@ -245,10 +282,10 @@ impl EditorCorePlugin {
             // Update line numbers zone
             ctx.set_zone(LINE_NUMBERS_ZONE, state.render_line_numbers());
 
-            // Update content zone without cursor markers
-            ctx.set_zone(CONTENT_ZONE, state.render_content());
+            // Update content using ANSI highlighting without altering layout width.
+            ctx.set_zone_pre_rendered(CONTENT_ZONE, state.render_content_with_highlight());
 
-            // Update status zone
+            // Update status zone text
             ctx.set_zone(STATUS_ZONE, state.render_status());
 
             ctx.request_render();
@@ -262,13 +299,18 @@ impl EditorCorePlugin {
             if let Some(content_rect) = ctx.rect(CONTENT_ZONE) {
                 let (cursor_row, cursor_col) = state.cursor_position();
                 // Convert zone-relative coordinates to absolute screen coordinates
-                let absolute_row = content_rect.y + cursor_row;
-                let absolute_col = content_rect.x + cursor_col;
+                let max_row = content_rect
+                    .y
+                    .saturating_add(content_rect.height.saturating_sub(1));
+                let max_col = content_rect
+                    .x
+                    .saturating_add(content_rect.width.saturating_sub(1));
+                let absolute_row = content_rect.y.saturating_add(cursor_row).min(max_row);
+                let absolute_col = content_rect.x.saturating_add(cursor_col).min(max_col);
                 ctx.set_cursor_hint(absolute_row, absolute_col);
             }
         }
     }
-
 }
 
 impl RoomPlugin for EditorCorePlugin {
@@ -292,7 +334,9 @@ impl RoomPlugin for EditorCorePlugin {
             }
 
             // Handle quit command
-            if key_event.modifiers.contains(KeyModifiers::CONTROL) && key_event.code == KeyCode::Char('q') {
+            if key_event.modifiers.contains(KeyModifiers::CONTROL)
+                && key_event.code == KeyCode::Char('q')
+            {
                 ctx.request_exit();
                 return Ok(EventFlow::Consumed);
             }
@@ -326,4 +370,3 @@ impl RoomPlugin for EditorCorePlugin {
         Ok(EventFlow::Continue)
     }
 }
-
