@@ -26,7 +26,7 @@ use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use room_mvp::{
     AnsiRenderer, CliDriver, Constraint, Direction, EventFlow, LayoutNode, LayoutTree,
     LegacyScreenStrategy, Result, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext,
-    RuntimeEvent, ScreenDefinition, ScreenManager, Size,
+    RuntimeEvent, ScreenDefinition, ScreenManager, Size, cursor,
 };
 
 // Editor zone definitions - showcase Room's zone-based architecture
@@ -258,10 +258,30 @@ impl EditorCorePlugin {
     /// Set cursor position after content is rendered
     fn update_cursor_position(&self, ctx: &mut RuntimeContext) {
         if let Ok(state) = self.state.lock() {
-            // Use actual cursor position from state
-            let (row, col) = state.cursor_position();
-            ctx.set_cursor_hint(row, col);
+            // Get the content zone rect to calculate absolute screen coordinates
+            if let Some(content_rect) = ctx.rect(CONTENT_ZONE) {
+                let (cursor_row, cursor_col) = state.cursor_position();
+                // Convert zone-relative coordinates to absolute screen coordinates
+                let absolute_row = content_rect.y + cursor_row;
+                let absolute_col = content_rect.x + cursor_col;
+                ctx.set_cursor_hint(absolute_row, absolute_col);
+            }
         }
+    }
+
+    /// Show the cursor - CLI driver hides it by default
+    fn show_cursor(&self, ctx: &mut RuntimeContext) {
+        // Add cursor show command to a zone that gets rendered
+        // This is a workaround since Room's CLI driver hides cursor
+        let current_status = if let Ok(state) = self.state.lock() {
+            state.render_status()
+        } else {
+            String::new()
+        };
+
+        // Append cursor show command to status zone content
+        let status_with_cursor = format!("{}{}", cursor::show(), current_status);
+        ctx.set_zone(STATUS_ZONE, status_with_cursor);
     }
 }
 
@@ -274,7 +294,8 @@ impl RoomPlugin for EditorCorePlugin {
         // Initial zone population - Room's startup pattern
         self.update_all_zones(ctx);
 
-        // Set cursor position after content is rendered
+        // Show cursor and set position after content is rendered
+        self.show_cursor(ctx);
         self.update_cursor_position(ctx);
         Ok(())
     }
@@ -312,6 +333,7 @@ impl RoomPlugin for EditorCorePlugin {
 
                 // Update zones after state change - Room's reactive pattern
                 self.update_all_zones(ctx);
+                self.show_cursor(ctx);
                 self.update_cursor_position(ctx);
                 return Ok(EventFlow::Consumed);
             }
