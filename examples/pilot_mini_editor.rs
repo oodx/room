@@ -289,8 +289,8 @@ impl RoomPlugin for EditorCorePlugin {
         self.update_all_zones(ctx);
 
         // Show cursor and set position after content is rendered
-        self.show_cursor_once(ctx);
         self.update_cursor_position(ctx);
+        self.show_cursor_once(ctx);
         Ok(())
     }
 
