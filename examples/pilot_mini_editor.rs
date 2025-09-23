@@ -27,7 +27,7 @@ use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use room_mvp::{
     AnsiRenderer, CliDriver, Constraint, Direction, EventFlow, LayoutNode, LayoutTree,
     LegacyScreenStrategy, Result, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext,
-    RuntimeEvent, ScreenDefinition, ScreenManager, Size,
+    RuntimeEvent, ScreenDefinition, ScreenManager, Size, display_width,
 };
 
 // Editor zone definitions - showcase Room's zone-based architecture
@@ -127,18 +127,40 @@ impl EditorState {
         }
     }
 
+    fn line_char_count(&self, row: usize) -> usize {
+        self.lines[row].chars().count()
+    }
+
+    fn byte_offset(line: &str, char_idx: usize) -> usize {
+        if char_idx == 0 {
+            return 0;
+        }
+        let mut iter = line.char_indices();
+        iter.nth(char_idx)
+            .map(|(idx, _)| idx)
+            .unwrap_or_else(|| line.len())
+    }
+
+    fn cursor_display_column(&self) -> usize {
+        let line = &self.lines[self.cursor_row];
+        let byte_idx = Self::byte_offset(line, self.cursor_col);
+        display_width(&line[..byte_idx]) as usize
+    }
+
     fn move_cursor(&mut self, direction: CursorDirection) {
         match direction {
             CursorDirection::Up => {
                 if self.cursor_row > 0 {
                     self.cursor_row -= 1;
-                    self.cursor_col = self.cursor_col.min(self.lines[self.cursor_row].len());
+                    let max_col = self.line_char_count(self.cursor_row);
+                    self.cursor_col = self.cursor_col.min(max_col);
                 }
             }
             CursorDirection::Down => {
                 if self.cursor_row < self.lines.len() - 1 {
                     self.cursor_row += 1;
-                    self.cursor_col = self.cursor_col.min(self.lines[self.cursor_row].len());
+                    let max_col = self.line_char_count(self.cursor_row);
+                    self.cursor_col = self.cursor_col.min(max_col);
                 }
             }
             CursorDirection::Left => {
@@ -146,11 +168,12 @@ impl EditorState {
                     self.cursor_col -= 1;
                 } else if self.cursor_row > 0 {
                     self.cursor_row -= 1;
-                    self.cursor_col = self.lines[self.cursor_row].len();
+                    self.cursor_col = self.line_char_count(self.cursor_row);
                 }
             }
             CursorDirection::Right => {
-                if self.cursor_col < self.lines[self.cursor_row].len() {
+                let line_len = self.line_char_count(self.cursor_row);
+                if self.cursor_col < line_len {
                     self.cursor_col += 1;
                 } else if self.cursor_row < self.lines.len() - 1 {
                     self.cursor_row += 1;
@@ -162,17 +185,21 @@ impl EditorState {
     }
 
     fn insert_char(&mut self, ch: char) {
-        self.lines[self.cursor_row].insert(self.cursor_col, ch);
+        let line = &mut self.lines[self.cursor_row];
+        let byte_idx = Self::byte_offset(line, self.cursor_col);
+        line.insert(byte_idx, ch);
         self.cursor_col += 1;
         self.version += 1;
     }
 
     fn insert_newline(&mut self) {
         let current_line = self.lines[self.cursor_row].clone();
-        let (left, right) = current_line.split_at(self.cursor_col);
+        let byte_idx = Self::byte_offset(&current_line, self.cursor_col);
+        let left = current_line[..byte_idx].to_string();
+        let right = current_line[byte_idx..].to_string();
 
-        self.lines[self.cursor_row] = left.to_string();
-        self.lines.insert(self.cursor_row + 1, right.to_string());
+        self.lines[self.cursor_row] = left;
+        self.lines.insert(self.cursor_row + 1, right);
         self.cursor_row += 1;
         self.cursor_col = 0;
         self.version += 1;
@@ -180,13 +207,17 @@ impl EditorState {
 
     fn delete_char(&mut self) {
         if self.cursor_col > 0 {
-            self.lines[self.cursor_row].remove(self.cursor_col - 1);
+            let line = &mut self.lines[self.cursor_row];
+            let start = Self::byte_offset(line, self.cursor_col - 1);
+            let end = Self::byte_offset(line, self.cursor_col);
+            line.replace_range(start..end, "");
             self.cursor_col -= 1;
             self.version += 1;
         } else if self.cursor_row > 0 {
             let current_line = self.lines.remove(self.cursor_row);
             self.cursor_row -= 1;
-            self.cursor_col = self.lines[self.cursor_row].len();
+            let previous_len = self.line_char_count(self.cursor_row);
+            self.cursor_col = previous_len;
             self.lines[self.cursor_row].push_str(&current_line);
             self.version += 1;
         }
@@ -194,7 +225,7 @@ impl EditorState {
 
     /// Calculate cursor position relative to content zone
     fn cursor_position(&self) -> (u16, u16) {
-        (self.cursor_row as u16, self.cursor_col as u16)
+        (self.cursor_row as u16, self.cursor_display_column() as u16)
     }
 
     /// Produce display content with an ANSI-highlighted caret that preserves cell width.
@@ -206,8 +237,8 @@ impl EditorState {
             }
 
             if idx == self.cursor_row {
-                let split_at = self.cursor_col.min(line.len());
-                let (left, right) = line.split_at(split_at);
+                let byte_idx = Self::byte_offset(line, self.cursor_col);
+                let (left, right) = line.split_at(byte_idx);
                 buffer.push_str(left);
 
                 // Highlight the glyph under the caret using reverse video.
@@ -237,10 +268,11 @@ impl EditorState {
 
     /// Generate status line - shows Room's real-time updates
     fn render_status(&self) -> String {
+        let display_col = self.cursor_display_column();
         format!(
             "──[ Line {}, Col {} | {} lines | v{} | Ctrl+Q to quit ]──",
             self.cursor_row + 1,
-            self.cursor_col + 1,
+            display_col + 1,
             self.lines.len(),
             self.version
         )
