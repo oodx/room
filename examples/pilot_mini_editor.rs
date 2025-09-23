@@ -33,6 +33,7 @@ use room_mvp::{
 const LINE_NUMBERS_ZONE: &str = "editor:line_numbers";
 const CONTENT_ZONE: &str = "editor:content";
 const STATUS_ZONE: &str = "editor:status";
+const CURSOR_CONTROL_ZONE: &str = "editor:cursor_control";
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     println!("Room Pilot · Mini Text Editor");
@@ -81,10 +82,11 @@ fn build_editor_layout() -> LayoutTree {
             LayoutNode {
                 id: "editor:main".into(),
                 direction: Direction::Column,
-                constraints: vec![Constraint::Flex(1), Constraint::Fixed(1)],
+                constraints: vec![Constraint::Flex(1), Constraint::Fixed(1), Constraint::Fixed(0)],
                 children: vec![
                     LayoutNode::leaf(CONTENT_ZONE),
                     LayoutNode::leaf(STATUS_ZONE),
+                    LayoutNode::leaf(CURSOR_CONTROL_ZONE),
                 ],
                 gap: 0,
                 padding: 0,
@@ -272,11 +274,8 @@ impl EditorCorePlugin {
 
     /// Show the cursor once - CLI driver hides it by default
     fn show_cursor_once(&self, ctx: &mut RuntimeContext) {
-        // Inject cursor show command into status zone content once at startup
-        if let Ok(state) = self.state.lock() {
-            let status_with_cursor = format!("{}{}", cursor::show(), state.render_status());
-            ctx.set_zone(STATUS_ZONE, status_with_cursor);
-        }
+        // Use dedicated cursor control zone that never gets updated after init
+        ctx.set_zone(CURSOR_CONTROL_ZONE, cursor::show());
     }
 }
 
@@ -286,12 +285,14 @@ impl RoomPlugin for EditorCorePlugin {
     }
 
     fn init(&mut self, ctx: &mut RuntimeContext) -> Result<()> {
+        // Show cursor FIRST, before any zone updates
+        self.show_cursor_once(ctx);
+
         // Initial zone population - Room's startup pattern
         self.update_all_zones(ctx);
 
-        // Show cursor and set position after content is rendered
+        // Set cursor position after content is rendered
         self.update_cursor_position(ctx);
-        self.show_cursor_once(ctx);
         Ok(())
     }
 
