@@ -269,19 +269,11 @@ impl EditorCorePlugin {
         }
     }
 
-    /// Show the cursor - CLI driver hides it by default
-    fn show_cursor(&self, ctx: &mut RuntimeContext) {
-        // Add cursor show command to a zone that gets rendered
-        // This is a workaround since Room's CLI driver hides cursor
-        let current_status = if let Ok(state) = self.state.lock() {
-            state.render_status()
-        } else {
-            String::new()
-        };
-
-        // Append cursor show command to status zone content
-        let status_with_cursor = format!("{}{}", cursor::show(), current_status);
-        ctx.set_zone(STATUS_ZONE, status_with_cursor);
+    /// Show the cursor once - CLI driver hides it by default
+    fn show_cursor_once(&self, ctx: &mut RuntimeContext) {
+        // Use a hidden zone just to inject the cursor show command
+        // This ensures it only happens once at startup
+        ctx.set_zone("editor:cursor_show", cursor::show());
     }
 }
 
@@ -295,7 +287,7 @@ impl RoomPlugin for EditorCorePlugin {
         self.update_all_zones(ctx);
 
         // Show cursor and set position after content is rendered
-        self.show_cursor(ctx);
+        self.show_cursor_once(ctx);
         self.update_cursor_position(ctx);
         Ok(())
     }
@@ -333,7 +325,7 @@ impl RoomPlugin for EditorCorePlugin {
 
                 // Update zones after state change - Room's reactive pattern
                 self.update_all_zones(ctx);
-                self.show_cursor(ctx);
+                // Don't call show_cursor() on every keystroke - cursor is already shown
                 self.update_cursor_position(ctx);
                 return Ok(EventFlow::Consumed);
             }
