@@ -1,22 +1,23 @@
-🎯 CURRENT FOCUS: Integrate the runtime audit hooks + first-paint helpers, keep screen-managed demos healthy, and follow up on remaining doc/ref chores.
+🎯 CURRENT FOCUS: Close out WORKSHOP-201A, outline the first-paint workshop plan, and document multi-screen learnings.
 
 📊 PROJECT STATUS
-- ✅ Layout engine + runtime plugins (Phase 1 complete, Phase 2 partially delivered)
-- ✅ Audit module + demos (runtime_first_paint, audit_demo) landed
-- ⬆️ Next major push: Bootstrap control adoption and doc sweep (focus defaults complete)
+- ✅ Layout engine + runtime plugins (Phase 1 complete, Phase 2 mid-flight)
+- ✅ Audit + bootstrap helpers with demos (`runtime_first_paint`, `audit_demo`, `bootstrap_helper`) shipping
+- ✅ SCREEN-106 multi-screen workshop landed (example + guide); docs/process logs updated
+- ⬆️ Next major push: WORKSHOP-201A fixes, WORKSHOP-301 outline, and screen-strategy write-up (UAT sweep parked in backlog)
 
-🚨 CRITICAL CONTEXT
-- Audit sinks should opt into the new audit + control helpers (ROOM-612) so streams stay silent until the first render commits; pair with cursor helpers when printing captures.
-- `examples/audit_demo.rs` renders a placeholder first; confirm ANSI output looks good before logging issues.
-- Validator still targets Room docs; treat any new warnings as blockers for handoff.
-- Active Phase: Runtime & Plugin Phase 2, observability polish + doc hygiene.
+-🚨 CRITICAL CONTEXT
+- All demos should route through `BootstrapControls` + `BootstrapAudit` to keep logs quiet until the first frame—flag any new surfaces that bypass them.
+- Screen manager exposes `ScreenState::navigator()` and default hotkeys (`Ctrl+Tab`, `Ctrl+Shift+Tab`/`Ctrl+BackTab`); `examples/workshop_screen_navigation.rs` and `examples/workshop_screen_multiscreen.rs` are the canonical guides.
+- README + META_PROCESS now mirror the `docs/procs/*.md` layout—extend the validator + PROCESS doc if you add new critical notes.
+- Validator warnings block handoff; rerun `./bin/validate-docs.sh` after doc edits.
+- Active Phase: Runtime & Plugin Phase 2 (observability polish + navigation education).
 
 📋 ACTIVE TASKS (see docs/procs/SPRINT.md for detail)
-1. Finish the doc/reference sweep and record the clean pass. ✅
-2. Keep the screen-manager demos aligned as remaining workshops migrate; focus defaults (ROOM-613) now ship via `RuntimeConfig::default_focus_zone`.
-3. Draft the multi-screen workshop plan (SCREEN-106) so we can demo screen switching.
-4. Exercise audit demos plus the new `bootstrap_helper`/`workshop_room_bootstrap` examples across terminals; log any rendering issues.
-5. Keep CONTINUE/QUICK_REF aligned whenever sprint priorities shift.
+1. WORKSHOP-201A: Resolve Boxy dashboard workshop defects and update the walkthrough.
+2. WORKSHOP-301 prep: Outline first-paint performance workshop, capture `cargo bench --bench runtime` baselines.
+3. Fold multi-screen findings into `docs/ref/strat/SCREEN_ZONE_STRATEGY.md` once follow-up testing results arrive.
+4. Plan the UAT sweep when capacity frees up (ROOM-UAT-001 in `docs/procs/BACKLOG.md`).
 
 🏗️ ARCHITECTURE SNAPSHOT
 - Primary modules: `src/runtime`, `src/layout`, `src/render`, `src/registry`
@@ -30,8 +31,8 @@
 - Chat demo smoke: `cargo run --example chat_demo`
 
 ⚡ IMMEDIATE NEXT STEPS
-1. Smoke-test Boxy surfaces (dashboard, runtime prompt, workshops) under different terminals to confirm pre-render alignment.
-2. Verify the screen-managed demos (`chat_demo`, `audit_demo`, `boxy_dashboard_runtime`, `control_room`, `runtime_first_paint`, `bootstrap_helper`, `workshop_room_bootstrap`, `chat_workshop`, `boxy_dashboard`) and keep default focus coverage intact.
-3. Start outlining WORKSHOP-301 (first paint) in code + docs once WORKSHOP-201A is resolved.
-4. Capture perf data (`cargo bench --bench runtime`) after the rendering change and note any deltas.
-5. Continue logging completed sessions in DONE to keep history tidy.
+1. Address WORKSHOP-201A defects and update its guide with troubleshooting notes.
+2. Re-run `cargo bench --bench runtime` before drafting WORKSHOP-301 notes so performance deltas are captured with fresh baselines.
+3. Capture multi-screen findings for `docs/ref/strat/SCREEN_ZONE_STRATEGY.md` after the next validation pass.
+4. Keep `docs/procs/DONE.md` updated as tasks close to preserve validator silence.
+5. Schedule the UAT sweep (ROOM-UAT-001) once higher-priority workshop work lands.

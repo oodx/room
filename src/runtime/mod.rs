@@ -8,7 +8,7 @@ use serde_json::json;
 
 use self::audit::{NullRuntimeAudit, RuntimeAudit, RuntimeAuditEventBuilder, RuntimeAuditStage};
 use self::focus::{FocusController, ensure_focus_registry};
-use self::screens::ScreenManager;
+use self::screens::{ScreenActivation, ScreenManager};
 use crate::logging::{event_with_fields, json_kv};
 use crate::{
     AnsiRenderer, LayoutError, LayoutTree, LogLevel, Logger, Rect, Result, RuntimeMetrics, Size,
@@ -486,15 +486,44 @@ impl RoomRuntime {
         let mut consumed = false;
         let mut consumed_by: Option<String> = None;
 
-        if let Some(manager) = self.screen_manager.as_mut() {
-            let mut ctx = RuntimeContext::new(&self.rects, &self.shared_state);
-            let flow = manager.handle_event(&mut ctx, &event)?;
-            let outcome = ctx.into_outcome();
-            self.apply_outcome(outcome)?;
-            if matches!(flow, EventFlow::Consumed) {
-                consumed = true;
-                consumed_by = Some("screen_manager".to_string());
+        if self.screen_manager.is_some() {
+            let mut manager = self
+                .screen_manager
+                .take()
+                .expect("screen manager missing after presence check");
+
+            let result: Result<(EventFlow, Vec<ScreenActivation>)> = (|| {
+                let mut ctx = RuntimeContext::new(&self.rects, &self.shared_state);
+                let flow = manager.handle_event(&mut ctx, &event)?;
+                let outcome = ctx.into_outcome();
+                self.apply_outcome(outcome)?;
+                let mut pending = Vec::new();
+                while let Some(activation) = manager.take_pending_activation() {
+                    pending.push(activation);
+                }
+                Ok((flow, pending))
+            })();
+
+            match result {
+                Ok((flow, pending)) => {
+                    for activation in pending {
+                        if let Err(err) = manager.finish_activation(self, activation) {
+                            self.screen_manager = Some(manager);
+                            return Err(err);
+                        }
+                    }
+                    if matches!(flow, EventFlow::Consumed) {
+                        consumed = true;
+                        consumed_by = Some("screen_manager".to_string());
+                    }
+                }
+                Err(err) => {
+                    self.screen_manager = Some(manager);
+                    return Err(err);
+                }
             }
+
+            self.screen_manager = Some(manager);
         }
 
         if consumed {

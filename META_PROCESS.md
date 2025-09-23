@@ -97,13 +97,13 @@ project-root/
 │   ├── misc/                    ← for docs that dont have an obvious home
 │   │   └──archive/              ← safe archive for docs that may be old or unprocessed
 │   ├── procs/                   ← Process & status documents
-│   │   ├── PROCESS.txt          ← Master workflow guide
+│   │   ├── PROCESS.md           ← Master workflow guide
 │   │   ├── CONTINUE.md          ← Session status & handoffs
-│   │   ├── QUICK_REF.txt        ← 30-second context (ultra-fast)
-│   │   ├── SPRINT.txt           ← Current iteration/sprint tasks
-│   │   ├── ROADMAP.txt          ← Strategic overview & milestones
-│   │   ├── TASKS.txt            ← Detailed task breakdown
-│   │   └── DONE.txt             ← Completed work archive
+│   │   ├── QUICK_REF.md         ← 30-second context (ultra-fast)
+│   │   ├── SPRINT.md            ← Current iteration/sprint tasks
+│   │   ├── ROADMAP.md           ← Strategic overview & milestones
+│   │   ├── TASKS.md             ← Detailed task breakdown
+│   │   └── DONE.md              ← Completed work archive
 │   └── ref/                     ← Reference documentation (can be broken down into child folders)
 │       ├── [DOMAIN]_GUIDE.md    ← Topic-specific guides
 │       ├── ARCHITECTURE.md      ← System architecture
@@ -124,8 +124,8 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
 **Existing documentation categorization:**
 1. **Keep in place**: Code-adjacent docs (API docs, inline documentation), LICENSE, README.md
 2. **Move to docs/ref/**: Technical references, architecture, feature specs
-3. **Transform to process docs**: READMEs → PROCESS.txt, TODO lists → TASKS.txt
-4. **Archive**: Outdated docs → DONE.txt or separate archive
+3. **Transform to process docs**: READMEs → PROCESS.md, TODO lists → TASKS.md
+4. **Archive**: Outdated docs → DONE.md or separate archive
 5. **Analysis storage**: Create .analysis/ or .eggs/ for AI agent outputs (optional)
 
 **Migration principles:**
@@ -148,16 +148,16 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
 
 👋 **Welcome to [Project] Development!**
 
-📋 **Single Entry Point**: Read docs/procs/PROCESS.txt for complete workflow
+📋 **Single Entry Point**: Read docs/procs/PROCESS.md for complete workflow
 
 🎯 **Quick Start** (5 minutes to productive work):
-1. Read docs/procs/PROCESS.txt ← Master workflow guide (3 min read)
+1. Read docs/procs/PROCESS.md ← Master workflow guide (3 min read)
 2. Read docs/procs/CONTINUE.md ← Current session status (1 min read)
-3. Read docs/procs/SPRINT.txt ← Active tasks (1 min read)
+3. Read docs/procs/SPRINT.md ← Active tasks (1 min read)
 4. Begin work with full context
 
 ⚡ **Ultra-Fast Start** (30 seconds):
-→ Read docs/procs/QUICK_REF.txt for essential context only
+→ Read docs/procs/QUICK_REF.md for essential context only
 
 🔍 **System Health Check**:
 → Run ./bin/validate-docs.sh to verify documentation integrity
@@ -167,7 +167,7 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
 ====
 ```
 
-## 📋 **Step 3.2: Create PROCESS.txt (Master Workflow)**
+## 📋 **Step 3.2: Create PROCESS.md (Master Workflow)**
 
 **Template structure:**
 ```txt
@@ -201,7 +201,7 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
 - Testing & validation tools
 ```
 
-## ⚡ **Step 3.3: Create QUICK_REF.txt (Ultra-Fast Context)**
+## ⚡ **Step 3.3: Create QUICK_REF.md (Ultra-Fast Context)**
 
 **30-second context template:**
 ```txt
@@ -217,7 +217,7 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
 - **MVP**: [Scope decisions and priorities]
 - **Current Sprint**: [Active tasks summary]
 
-📋 **Current Tasks** (see docs/procs/SPRINT.txt):
+📋 **Current Tasks** (see docs/procs/SPRINT.md):
 1. [Task 1 with brief description]
 2. [Task 2 with brief description]
 3. [Task 3 with brief description]
@@ -228,7 +228,7 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
 
 ⚡ **Immediate Next Steps**:
 1. Read docs/procs/CONTINUE.md for latest status
-2. Check docs/procs/SPRINT.txt for task details
+2. Check docs/procs/SPRINT.md for task details
 3. [Project-specific next actions]
 
 🚨 **Critical Rules**:
@@ -293,9 +293,9 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
 ## 🎯 **Step 4.3: MVP Triage Integration**
 
 **Integrate triage results into planning:**
-- Update ROADMAP.txt with MVP vs full scope
-- Adjust TASKS.txt priorities based on triage
-- Create focused SPRINT.txt with critical path items
+- Update ROADMAP.md with MVP vs full scope
+- Adjust TASKS.md priorities based on triage
+- Create focused SPRINT.md with critical path items
 - Document scope decisions in reference docs
 
 ====
@@ -347,7 +347,7 @@ NOTE: LICENSE and README.md stay at root - do not move to docs/
 
 **Implement three onboarding speeds:**
 1. **Complete** (5 minutes): Full workflow documentation
-2. **Quick** (30 seconds): QUICK_REF.txt essential context
+2. **Quick** (30 seconds): QUICK_REF.md essential context
 3. **Health Check**: Validation script for system integrity
 
 ====
@@ -365,7 +365,7 @@ about the current project state."
 
 **Success criteria:**
 - ✅ Agent finds START.txt without guidance
-- ✅ Agent follows workflow: PROCESS.txt → CONTINUE.md → SPRINT.txt
+- ✅ Agent follows workflow: PROCESS.md → CONTINUE.md → SPRINT.md
 - ✅ Agent demonstrates understanding of current context
 - ✅ Agent ready for productive work within 5 minutes
 - ✅ No questions about basic project setup or current status
@@ -380,17 +380,17 @@ about the current project state."
 **Test all workflow paths:**
 - New agent onboarding (complete & quick)
 - Session handoffs (CONTINUE.md updates)
-- Sprint transitions (SPRINT.txt → new iteration)
-- Milestone completion (archive to DONE.txt)
+- Sprint transitions (SPRINT.md → new iteration)
+- Milestone completion (archive to DONE.md)
 
 ## 🔧 **Step 6.3: System Maintenance**
 
 **Regular maintenance tasks:**
 - Update CONTINUE.md every session (mandatory)
-- Refresh QUICK_REF.txt when project focus shifts
-- Archive completed work to DONE.txt at milestone completion
+- Refresh QUICK_REF.md when project focus shifts
+- Archive completed work to DONE.md at milestone completion
 - Validate documentation integrity before major changes
-- Update META_PROCESS.txt with lessons learned
+- Update META_PROCESS.md with lessons learned
 
 ====
  📈 SUCCESS METRICS & OUTCOMES
@@ -452,7 +452,7 @@ about the current project state."
 1. **Discipline**: Must update CONTINUE.md every session
 2. **Structure**: Follow the directory organization exactly
 3. **Testing**: Validate with fresh agents regularly
-4. **Maintenance**: Keep QUICK_REF.txt current with project focus
+4. **Maintenance**: Keep QUICK_REF.md current with project focus
 5. **Validation**: Run health checks before major changes
 
 ====
@@ -473,10 +473,10 @@ about the current project state."
 
 ## 📄 **Phase 3: Core Documents**
 - [ ] START.txt created (single entry point)
-- [ ] PROCESS.txt created (master workflow)
-- [ ] QUICK_REF.txt created (30-second context)
+- [ ] PROCESS.md created (master workflow)
+- [ ] QUICK_REF.md created (30-second context)
 - [ ] CONTINUE.md initialized (session status)
-- [ ] SPRINT.txt created (current tasks)
+- [ ] SPRINT.md created (current tasks)
 
 ## 🧠 **Phase 4: Analysis Integration**
 - [ ] Agent wisdom consolidated (if applicable)
@@ -581,7 +581,7 @@ Create these templates for projects to customize:
 
 4. **archive-sprint.sh**
    - Move completed sprint to archive
-   - Update DONE.txt
+   - Update DONE.md
    - Generate sprint retrospective
 
 

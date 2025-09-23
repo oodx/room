@@ -41,7 +41,7 @@ pub use runtime::focus::{
 };
 pub use runtime::screens::{
     GlobalZoneStrategy, LegacyScreenStrategy, ScreenActivation, ScreenDefinition, ScreenFactory,
-    ScreenLifecycleEvent, ScreenManager, ScreenMetadata,
+    ScreenLifecycleEvent, ScreenManager, ScreenMetadata, ScreenNavigator, ScreenState,
 };
 pub use runtime::shared_state::{SharedState, SharedStateError};
 pub use runtime::{

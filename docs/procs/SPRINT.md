@@ -8,9 +8,9 @@ Bring the Room project in line with the META process so future sessions self-reh
    - Rewrote `bin/validate-docs.sh` to target Room docs, .analysis files, and eggs.
    - Silent-success behaviour preserved with staleness warnings for critical files.
 
-2. [~] ROOM-META-002 · Process doc normalization (2 pts)
-   - Core references retargeted to `docs/ref/` and `docs/procs/`.
-   - Follow-up: sweep remaining docs/examples for legacy paths and keep QUICK_REF/CONTINUE synced as priorities change.
+2. [x] ROOM-META-002 · Process doc normalization (2 pts)
+   - Core references retargeted to `docs/ref/` and `docs/procs/`; README + META_PROCESS now match the Room layout.
+   - Doc/reference sweep complete and logged in DONE; CONTINUE/QUICK_REF refreshed to remove stale guidance.
 
 3. [x] ROOM-META-003 · Analysis hydration (1 pt)
    - Populated `.analysis/consolidated_wisdom.txt` with China’s architecture summary.
@@ -28,13 +28,17 @@ Bring the Room project in line with the META process so future sessions self-reh
    - Added workshop header in `examples/boxy_dashboard_runtime.rs` with controls and guidance.
    - Documented focus/refresh/prompt exercises in `docs/ref/workshops/workshop_boxy_dashboard_runtime.md`.
 
-7. [ ] WORKSHOP-201A · Boxy Dashboard Workshop Fixes (1 pt)
-   - Track and resolve known defects in the workshop flow.
-   - Update guide with troubleshooting notes once fixed.
+7. [x] WORKSHOP-201A · Boxy Dashboard Workshop Fixes (1 pt)
+   - Prompt now respects Enter vs Ctrl+Enter semantics, retains focus via `RuntimeConfig::default_focus_zone`, and the
+     guide includes troubleshooting notes for prompt/reset behaviour.
 
 8. [x] WORKSHOP-202 · Boxy Grid Workshop (2 pts)
    - Added `examples/workshop_boxy_grid.rs` covering 2x2 and wide strip scenarios.
    - Authored `docs/ref/workshops/workshop_boxy_grid.md` with exercises and follow-ups.
+
+9. [x] SCREEN-106 · Multi-screen workshop (2 pts)
+   - Introduced `examples/workshop_screen_multiscreen.rs` with dashboard/settings/activity flows plus shared state.
+   - Documented exercises in `docs/ref/workshops/workshop_screen_multiscreen.md` and refreshed QUICK_REF/CONTINUE.
 
 ## Stretch Items
 - ROOM-603/604 integration: document remaining logging + benchmarking gaps in `docs/ref/strat/LOGGING_STRATEGY.md` after validator update.

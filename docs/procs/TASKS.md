@@ -13,9 +13,9 @@
 - Replace Boxy-specific checks with Room-aware structure validation.
 - Keep silent-success/noisy-failure semantics and add freshness warnings.
 
-### [~] ROOM-META-002: Process doc normalization [2 pts]
-- Update all process docs to reference `docs/procs/` and `docs/ref/` paths.
-- Sweep remaining code/docs for legacy references and clean them up.
+### [x] ROOM-META-002: Process doc normalization [2 pts]
+- Update all process docs to reference `docs/procs/` and `docs/ref/` paths. ✅
+- Swept repository docs for legacy references, refreshed README/META_PROCESS, and recorded completion in CONTINUE/DONE.
 
 ### [x] ROOM-META-003: Analysis hydration [1 pt]
 - Seed `.analysis/consolidated_wisdom.txt` with current architecture learnings.
@@ -68,9 +68,11 @@
 - Authored `docs/ref/workshops/workshop_boxy_dashboard_runtime.md` covering focus cycling, refresh flow, prompt exercises.
 - Acceptance met (workshop flow + guidance captured).
 
-### [ ] WORKSHOP-201A: Boxy Dashboard Workshop Fixes [1 pt]
-- Investigate defects discovered during workshop review (focus quirks, prompt experience).
-- Acceptance: workshop runs end-to-end without issues; guide updated with troubleshooting tips.
+### [x] WORKSHOP-201A: Boxy Dashboard Workshop Fixes [1 pt]
+- Adjusted the dashboard runtime so `Enter` logs without clearing the prompt while `Ctrl+Enter` submit-and-clears, and
+  set `RuntimeConfig::default_focus_zone` to keep the prompt focused.
+- Added troubleshooting notes to `docs/ref/workshops/workshop_boxy_dashboard_runtime.md` covering prompt behaviour and
+  refresh tips.
 
 ### [x] WORKSHOP-202: Boxy Grid Workshop [2 pts]
 - Introduced `examples/workshop_boxy_grid.rs` with multi-scenario grid walkthroughs.
@@ -118,25 +120,33 @@
 - Add smoke tests covering screen switching and layout swaps.
 - Legacy strategy landed and all runtime-driven demos (`chat_demo`, `audit_demo`, `boxy_dashboard_runtime`, `boxy_dashboard`, `control_room`, `runtime_first_paint`, `bootstrap_helper`, `workshop_room_bootstrap`, `chat_workshop`) now activate the manager on startup; focused tests live in `runtime::screens` to guard activation.
 
-### [ ] SCREEN-103: Global zone strategy trait + default implementation [3 pts]
-- Define `GlobalZoneStrategy` trait (layout provisioning, panel registration, event mediation).
-- Ship a blank/default strategy that simply hosts existing panels for backward compatibility.
-- Ensure audit/bootstrap helpers work unchanged under the new layer.
+### [x] SCREEN-103: Global zone strategy trait + default implementation [3 pts]
+- Defined `GlobalZoneStrategy` with screen-scoped state access so strategies can register panels, react to lifecycle
+  events, and mediate runtime events without losing legacy behaviour.
+- Extended `LegacyScreenStrategy` to accept `ScreenState` handles while preserving existing demos.
+- Screen manager now exposes `active_state`/`screen_state` helpers and re-applies configured focus after
+  `register_panels`, keeping audit/bootstrap helpers unchanged.
 
-### [ ] SCREEN-104: Screen-scoped state adapter [2 pts]
-- Build `ScreenState` wrapper on top of `SharedState` with per-screen namespaces.
-- Provide ergonomics for sharing data across screens when needed.
-- Document usage in strategy reference material.
+### [x] SCREEN-104: Screen-scoped state adapter [2 pts]
+- Added `ScreenState` + internal namespace store so each screen receives a persistent `SharedState` clone across
+  activations, with tests covering isolation and lazy init.
+- ScreenManager hands the scoped state to strategies during lifecycle + event handling, and exposes the handles for
+  callers that need to seed data before activation.
+- Updated `docs/ref/strat/SCREEN_ZONE_STRATEGY.md` with the new API surface and usage guidance.
 
-### [ ] SCREEN-105: Navigation & event routing [3 pts]
-- Design a screen navigation API (command dispatcher / navigator helper) and map default key bindings.
-- Ensure events bubble from panels → global zone → screen manager predictably.
-- Cover edge cases (unknown screen id, rapid toggles) with tests.
+### [x] SCREEN-105: Navigation & event routing [3 pts]
+- Added `ScreenNavigator` + `ScreenState::navigator` so strategies/panels can enqueue screen switches without touching
+  the runtime directly.
+- Screen manager now drains pending navigation requests post-event, ships default hotkeys (`Ctrl+Tab`,
+  `Ctrl+Shift+Tab`/`Ctrl+BackTab`), and preserves registration order for cycling.
+- Unit tests cover state isolation, explicit navigation requests, and hotkey cycling (forward/backward).
+- New workshop (`examples/workshop_screen_navigation.rs`) exercises the navigator API alongside the defaults; guide
+  lives in `docs/ref/workshops/workshop_screen_navigation.md`.
 
-### [ ] SCREEN-106: Multi-screen workshop & example [2 pts]
-- Create an example/workshop demonstrating two screens (e.g., dashboard vs. settings) with runtime switching.
-- Update documentation and QUICK_REF to highlight multi-screen capabilities.
-- Capture follow-up learnings/new patterns in SCREEN_ZONE_STRAT.
+### [x] SCREEN-106: Multi-screen workshop & example [2 pts]
+- Added `examples/workshop_screen_multiscreen.rs` showcasing dashboard/settings/activity screens, shared runtime state, and navigator shortcuts. ✅
+- Authored `docs/ref/workshops/workshop_screen_multiscreen.md` with guided exercises and takeaways. ✅
+- Updated process docs/QUICK_REF to highlight the new multi-screen flow and recorded completion in CONTINUE + DONE. ✅
 
 ### [x] WORKSHOP-203: Runtime bootstrap & cleanup flow [1 pt]
 - Add a guided workshop that captures the first render, streams audit events, and exits cleanly. ✅ (`examples/workshop_room_bootstrap.rs`)

@@ -17,5 +17,9 @@
 - WORKSHOP-301: First Paint Performance Workshop
   - Build on `examples/runtime_first_paint.rs` to teach first-render metrics and audit hooks.
   - Acceptance: documented tasks + baseline expectations for render timing.
+- ROOM-UAT-001: Runtime UAT smoke tests across terminals
+  - Execute cross-terminal walkthroughs for `audit_demo`, `runtime_first_paint`, `bootstrap_helper`, `chat_workshop`,
+    `boxy_dashboard`, `workshop_screen_navigation`, `workshop_screen_multiscreen`, and `workshop_room_bootstrap`.
+  - Capture ANSI/focus issues and log follow-up tasks; keep debt visible until the sweep completes.
 
 (Archived from `docs/procs/TASKS.md` on 2025-09-18.)

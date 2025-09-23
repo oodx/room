@@ -14,3 +14,7 @@
   and documented exercises in `docs/ref/workshops/workshop_boxy_grid.md`.
 
 (Record future completions here with date, task id, and key acceptance notes.)
+
+## 2025-09-21
+- ROOM-META-002 · Process doc normalization — Completed repo-wide doc/reference sweep, refreshed README + META_PROCESS for `docs/procs/*.md`, updated CONTINUE/QUICK_REF/TASKS, and logged the pass for the validator.
+- SCREEN-106 · Multi-screen workshop — Added `examples/workshop_screen_multiscreen.rs`, companion guide (`docs/ref/workshops/workshop_screen_multiscreen.md`), and refreshed process docs/README/strategy notes to reflect the new flow.

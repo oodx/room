@@ -45,6 +45,14 @@ Keyboard shortcuts:
 - Change the tick interval (`runtime.config_mut().tick_interval`) and confirm metrics update cadence.
 - Integrate custom glyphs or metrics by editing `cycle_panels` and `metrics_text`.
 
+## Troubleshooting
+- **Prompt still shows text after pressing Enter** – This is intentional so you can tweak the last message. Use
+  `Ctrl+Enter` to submit and clear the buffer, or `Esc` to discard the input entirely.
+- **Prompt loses highlight after resizing** – The runtime now declares a default focus zone for the prompt. If focus still
+  feels off (e.g., when experimenting with additional screens), tap `Tab` once to reapply the highlight and carry on.
+- **Activity panel stops updating** – Press `Ctrl+R` to force a refresh; this will mark every panel dirty and repaint the
+  dashboard on the next render pass.
+
 ## Wrap-Up
 - Record any insights in `docs/procs/DONE.md` when you finish the workshop.
 - Next workshop: First Paint Performance (WORKSHOP-301) leveraging `examples/runtime_first_paint.rs`.

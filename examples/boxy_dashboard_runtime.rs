@@ -58,6 +58,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     runtime.set_screen_manager(screen_manager);
     runtime.activate_screen("dashboard")?;
 
+    runtime.config_mut().default_focus_zone = Some(PROMPT_ZONE.to_string());
     runtime.config_mut().tick_interval = Duration::from_secs(2);
     runtime.register_plugin(BoxyDashboardPlugin::new());
 
@@ -317,7 +318,16 @@ impl BoxyPrompt {
         true
     }
 
-    fn submit(&mut self) -> Option<String> {
+    fn current_submission(&self) -> Option<String> {
+        let trimmed = self.buffer.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    }
+
+    fn take_submission(&mut self) -> Option<String> {
         let trimmed = self.buffer.trim();
         if trimmed.is_empty() {
             self.clear();
@@ -578,14 +588,15 @@ impl BoxyDashboardPlugin {
         match key.code {
             KeyCode::Enter => {
                 if key.modifiers.contains(KeyModifiers::CONTROL) {
-                    if let Some(submission) = self.prompt.submit() {
+                    if let Some(submission) = self.prompt.take_submission() {
                         self.record_submission(&submission);
                     }
                     ctx.request_render();
                     return Ok(EventFlow::Consumed);
                 }
-                if let Some(submission) = self.prompt.submit() {
+                if let Some(submission) = self.prompt.current_submission() {
                     self.record_submission(&submission);
+                    self.prompt.mark_dirty();
                 }
                 ctx.request_render();
                 Ok(EventFlow::Consumed)

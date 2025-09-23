@@ -1,59 +1,72 @@
 # room
 
-Pilot workbench for a flicker-free terminal layout engine driven by RSB token streams.
+Room is the OODX runtime workbench: a flicker-free terminal engine with a
+runtime coordinator, plugin system, and workshop examples that exercise the new
+screen manager and audit tooling.
 
-## Components
-- `room`: experimental crate with layout solver, zone registry, renderer, and token router.
-- `docs/ref/strat/LAYOUT_ENGINE_STRATEGY.md`: architectural notes, verification checklist, and follow-up items.
-- `docs/procs/TASKS.txt`: story-point backlog with completion status.
+## Getting Started
+- `cargo fmt` – keep formatting clean (no manifest override needed).
+- `cargo check` / `cargo test` – verify the crate from the repository root.
+- `./bin/validate-docs.sh` – documentation validator with silent-success
+  semantics; treat warnings as blockers for handoff.
 
-## Quickstart
-```bash
-cargo fmt --manifest-path room/Cargo.toml
-cargo test --manifest-path room/Cargo.toml
-```
+## Demos & Workshops
+- `cargo run --example chat_demo` – baseline runtime with bundled prompt and
+  status plugins.
+- `cargo run --example boxy_dashboard_runtime` – Boxy-driven dashboard running
+  through the `ScreenManager` legacy strategy.
+- `cargo run --example audit_demo` – first-paint audit walkthrough; uses the
+  bootstrap helpers to buffer events until the first render.
+- `cargo run --example workshop_screen_navigation` – exercises the default
+  navigation hotkeys and `ScreenNavigator` API.
+- `cargo run --example workshop_screen_multiscreen` – dashboard/settings/activity
+  flow sharing runtime state across screens.
+- `bin/examples.sh run <example>` – scripted launcher for any example.
 
-## Demo
-Run the chat dashboard demo (uses ANSI cursor positioning and raw mode):
-```bash
-cargo run --example chat_demo --manifest-path room/Cargo.toml
-```
-Press `Esc` to exit the demo.
+The runtime utilities assume ANSI-capable terminals. When printing captured
+frames outside the runtime, use `src/runtime/cursor` helpers to realign the
+prompt before exit.
 
-### Boxy dashboard demo
+## Documentation Workflow
+- Single entry point: `START.txt`.
+- Process docs live in `docs/procs/` (`PROCESS.md`, `CONTINUE.md`, `QUICK_REF.md`,
+  `SPRINT.md`, `TASKS.md`, `ROADMAP.md`, `DONE.md`). Update `CONTINUE.md` and
+  `QUICK_REF.md` at the end of every session.
+- Reference notes live in `docs/ref/` (strategy notes, plugin API, workshops,
+  logging, benchmarking, screen strategy, and more).
+- Long-lived analysis artefacts live in `.analysis/`; generated summaries stick
+  to `.eggs/`.
 
-Render three focusable Boxy panels with status updates and cursor tracking:
+Follow the hydration checklist in `docs/procs/PROCESS.md` whenever you pick up
+the project. The validator protects critical docs and flags stale references.
 
-```bash
-cargo run --example boxy_dashboard --manifest-path room/Cargo.toml
-```
-Requires the local `projects/boxy` and `projects/rsb` checkouts; press `Esc` to exit, `Tab` to cycle focus.
+## Architecture Snapshot
+- `src/runtime` – runtime coordinator, screen manager, bootstrap/audit helpers.
+- `src/layout` – constraint solver and zone registry integration.
+- `src/render` – ANSI diff renderer.
+- `examples/` – demos + workshops covering bootstrap flows, navigation, and
+  Boxy integrations.
 
-## Architecture
+Reference deep dives:
+- Runtime lifecycle & bootstrap: `docs/ref/strat/RUNTIME_STRATEGY.md`
+- Screen/global zone design: `docs/ref/strat/SCREEN_ZONE_STRATEGY.md`
+- Plugin API & shared state: `docs/ref/PLUGIN_API.md`,
+  `docs/ref/strat/SHARED_RUNTIME_STRATEGY.md`
+- Audit + benchmarks: `docs/ref/strat/LOGGING_STRATEGY.md`,
+  `docs/ref/FEATURES_RUNTIME_PHASE2.md`, `docs/ref/strat/BENCHMARKING_STRATEGY.md`
 
-Room's architecture is built around several key components:
-- Layout Solver: Intelligent terminal space allocation
-- Zone Registry: Dynamic interface region management
-- Renderer: Efficient, minimal-flicker content drawing
-- Token Router: State-driven interface updates
+## Project Status
+- Current phase: Runtime & Plugin Phase 2 (observability polish + screen manager
+  adoption).
+- Recent work: screen-scoped state, navigation helpers, audit/first-paint demos,
+  cursor utilities, documentation sweep.
+- Upcoming focus: multi-screen workshop production (SCREEN-106), Boxy workshop
+  fixes (WORKSHOP-201A), and cross-terminal smoke tests for bootstrap flows.
 
-Detailed architectural notes live in `docs/ref/LAYOUT_ENGINE_STRATEGY.md`.
-
-## Documentation
-
-- 📁 `docs/procs/`: Process and status docs (START, PROCESS, CONTINUE, SPRINT, TASKS, ROADMAP, DONE)
-- 📚 `docs/ref/`: Reference notes (`CORE_PLUGIN_STRATEGY.txt`, `FEATURES_RUNTIME_PHASE2.txt`, `PLUGIN_API.txt`, `SOCKET_STRAT.txt`, `SHARED_RUNTIME_STRAT.txt`, etc.)
-- 🥚 `.eggs/`: Generated project summaries and agent analysis outputs
-
-## Development Status
-
-**Current Phase**: MVP Development
-- [x] Basic layout engine
-- [x] Token stream routing
-- [x] Demo implementations
-- [ ] Advanced plugin system
-- [ ] Performance optimization
-
-## Tasks & Roadmap
-
-Track ongoing development in `docs/procs/TASKS.txt`. Story points and completion status are regularly updated; see `docs/procs/ROADMAP.txt` for phase-level goals.
+## Contribution Rules
+- Always hydrate context via `START.txt` → `docs/procs/PROCESS.md` →
+  `docs/procs/CONTINUE.md` before editing.
+- Keep process docs in sync with code changes; log completions in
+  `docs/procs/DONE.md` with timestamps.
+- Run `./bin/validate-docs.sh` before leaving a session; update the script if
+  you add or rename critical documentation.
