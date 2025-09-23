@@ -65,17 +65,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     // Don't use CLI bundle since we're handling everything ourselves
     // The CLI bundle would conflict with our custom input handling
 
-    // Warm the runtime so first paint is staged deterministically before handing
-    // control to the CLI driver.
-    {
-        let mut bootstrap_capture = Vec::new();
-        let mut controls = runtime.bootstrap_controls(&mut bootstrap_capture)?;
-        controls.present_first_frame()?;
-        controls.run_ticks(2, Duration::from_millis(16))?;
-        controls.finish()?;
-    }
-
-    // Run the main event loop with the driver; it will re-bootstrap inside raw mode.
+    // Run the main event loop; the driver performs a synchronous bootstrap that
+    // renders the first frame before entering the event loop.
     CliDriver::new(runtime).run()?;
     Ok(())
 }

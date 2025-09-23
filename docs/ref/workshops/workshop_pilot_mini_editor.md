@@ -226,7 +226,7 @@ Clamping the hint ensures the (hidden) terminal cursor never escapes the solved 
 3. `CliDriver::run()` renders first frame
 4. Enter event loop for user interaction
 
-Set `RuntimeConfig::tick_interval` to a predictable value (16 ms in the demo) and stage a couple of bootstrap ticks via `runtime.bootstrap_controls` before handing the runtime to `CliDriver`. That warm-up guarantees the first render commits with all zones populated before raw mode kicks in.
+Set `RuntimeConfig::tick_interval` to a predictable value (16 ms in the demo) so periodic ticks flow even without user input. `CliDriver::run` synchronously bootstraps the runtime before entering the event loop, ensuring the first frame lands without waiting for a keystroke.
 
 ## Exercise Ideas
 
