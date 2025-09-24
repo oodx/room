@@ -10,11 +10,15 @@
 - Formalize plugin system; extract chat/workshop behaviors into reusable modules.
 - Ship structured logging + metrics and Criterion benchmarks for regression tracking.
 - Introduce Screens + Global Zone layer so applications can swap full-view layouts without restarting the runtime.
+- Land the friendly lifecycle/Error path work (`ROOM-611`–`ROOM-614`) so sessions expose `Open → Close` signals, cursor/focus events, and safe fatal teardown.
 
 ## Phase 3 – Declarative Layout & Batteries Included UX
 - Create layout DSL/compiler for zone declarations and plugin wiring.
 - Provide standard components: chat panes, status bars, boxy window manager, split panes.
 - Expand workshops/examples to demonstrate token-compliant patterns.
+- Prototype experiential workshops (e.g. MUD mini game, Boxy MUD panels) to exercise runtime + Boxy integration, then
+  harden them into fully guided tutorials.
+- Introduce "debug" workshops that surface runtime internals (dirty logs, focus changes) to guide future tooling work.
 
 ## Phase 4 – Adapters & Integrations
 - CLI driver (crossterm), socket/WebSocket driver, and scripted test harness.

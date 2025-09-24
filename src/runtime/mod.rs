@@ -7,7 +7,7 @@ use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 use serde_json::json;
 
 use self::audit::{NullRuntimeAudit, RuntimeAudit, RuntimeAuditEventBuilder, RuntimeAuditStage};
-use self::focus::{FocusController, ensure_focus_registry};
+use self::focus::{FocusController, FocusEntry, ensure_focus_registry};
 use self::screens::{ScreenActivation, ScreenManager};
 use crate::logging::{event_with_fields, json_kv};
 use crate::{
@@ -116,6 +116,25 @@ impl RuntimeConfig {
 /// High-level events delivered to plugins.
 #[derive(Debug, Clone)]
 pub enum RuntimeEvent {
+    Open,
+    Boot,
+    Setup,
+    UserReady,
+    LoopIn { kind: LoopEventKind },
+    LoopOut { kind: LoopEventKind, consumed: bool },
+    UserEnd,
+    Cleanup,
+    End,
+    Close,
+    Error(RuntimeError),
+    RecoverOrFatal { recovered: bool },
+    Fatal,
+    FatalCleanup,
+    FatalClose,
+    CursorMoved(Cursor),
+    CursorShown(Cursor),
+    CursorHidden(Cursor),
+    FocusChanged(FocusChange),
     Tick { elapsed: Duration },
     Key(KeyEvent),
     Mouse(MouseEvent),
@@ -124,6 +143,100 @@ pub enum RuntimeEvent {
     FocusLost,
     Resize(Size),
     Raw(CrosstermEvent),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoopEventKind {
+    Tick,
+    Key,
+    Mouse,
+    Paste,
+    FocusGained,
+    FocusLost,
+    Resize,
+    Raw,
+}
+
+impl LoopEventKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            LoopEventKind::Tick => "tick",
+            LoopEventKind::Key => "key",
+            LoopEventKind::Mouse => "mouse",
+            LoopEventKind::Paste => "paste",
+            LoopEventKind::FocusGained => "focus_gained",
+            LoopEventKind::FocusLost => "focus_lost",
+            LoopEventKind::Resize => "resize",
+            LoopEventKind::Raw => "raw",
+        }
+    }
+
+    pub fn from_runtime_event(event: &RuntimeEvent) -> Option<Self> {
+        match event {
+            RuntimeEvent::Tick { .. } => Some(LoopEventKind::Tick),
+            RuntimeEvent::Key(_) => Some(LoopEventKind::Key),
+            RuntimeEvent::Mouse(_) => Some(LoopEventKind::Mouse),
+            RuntimeEvent::Paste(_) => Some(LoopEventKind::Paste),
+            RuntimeEvent::FocusGained => Some(LoopEventKind::FocusGained),
+            RuntimeEvent::FocusLost => Some(LoopEventKind::FocusLost),
+            RuntimeEvent::Resize(_) => Some(LoopEventKind::Resize),
+            RuntimeEvent::Raw(_) => Some(LoopEventKind::Raw),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RuntimeError {
+    pub category: String,
+    pub source: Option<String>,
+    pub message: String,
+    pub recoverable: bool,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct CursorStyle {
+    pub fg_color: Option<String>,
+    pub bg_color: Option<String>,
+    pub attributes: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Cursor {
+    pub position: (u16, u16),
+    pub visible: bool,
+    pub char: Option<char>,
+    pub style: Option<CursorStyle>,
+}
+
+impl Default for Cursor {
+    fn default() -> Self {
+        Self {
+            position: (0, 0),
+            visible: true,
+            char: None,
+            style: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum CursorEvent {
+    Moved(Cursor),
+    Shown(Cursor),
+    Hidden(Cursor),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FocusTarget {
+    pub owner: Option<String>,
+    pub zone: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FocusChange {
+    pub from: Option<FocusTarget>,
+    pub to: Option<FocusTarget>,
 }
 
 /// Control the propagation of an event across plugins.
@@ -141,6 +254,8 @@ pub struct RuntimeContext<'a> {
     redraw_requested: bool,
     exit_requested: bool,
     cursor_hint: Option<(u16, u16)>,
+    cursor_update: CursorUpdate,
+    reported_error: Option<RuntimeError>,
 }
 
 impl<'a> RuntimeContext<'a> {
@@ -152,6 +267,8 @@ impl<'a> RuntimeContext<'a> {
             redraw_requested: false,
             exit_requested: false,
             cursor_hint: None,
+            cursor_update: CursorUpdate::default(),
+            reported_error: None,
         }
     }
 
@@ -192,6 +309,54 @@ impl<'a> RuntimeContext<'a> {
     /// Provide a hint for where the cursor should be restored after rendering.
     pub fn set_cursor_hint(&mut self, row: u16, col: u16) {
         self.cursor_hint = Some((row, col));
+        self.cursor_update.position = Some((row, col));
+    }
+
+    /// Position the cursor at the provided absolute coordinates.
+    pub fn set_cursor_position(&mut self, row: u16, col: u16) {
+        self.set_cursor_hint(row, col);
+    }
+
+    /// Position the cursor relative to a zone (row/col offsets within the zone).
+    pub fn set_cursor_in_zone(&mut self, zone_id: &str, row_offset: i32, col_offset: i32) {
+        if let Some(rect) = self.rect(zone_id) {
+            let row_min = rect.y as i32;
+            let row_max = row_min + rect.height as i32 - 1;
+            let col_min = rect.x as i32;
+            let col_max = col_min + rect.width as i32 - 1;
+            if row_max >= row_min && col_max >= col_min {
+                let row = (row_min + row_offset).clamp(row_min, row_max);
+                let col = (col_min + col_offset).clamp(col_min, col_max);
+                if row >= 0 && col >= 0 {
+                    self.set_cursor_hint(row as u16, col as u16);
+                }
+            }
+        }
+    }
+
+    /// Hide the terminal cursor after the next render.
+    pub fn hide_cursor(&mut self) {
+        self.cursor_update.visible = Some(false);
+    }
+
+    /// Show the terminal cursor after the next render.
+    pub fn show_cursor(&mut self) {
+        self.cursor_update.visible = Some(true);
+    }
+
+    /// Override the glyph (caret) rendered for the cursor.
+    pub fn set_cursor_char(&mut self, ch: Option<char>) {
+        self.cursor_update.char = Some(ch);
+    }
+
+    /// Apply a style to the cursor.
+    pub fn set_cursor_style(&mut self, style: Option<CursorStyle>) {
+        self.cursor_update.style = Some(style);
+    }
+
+    /// Report a runtime error. The runtime will attempt recovery before escalating.
+    pub fn report_error(&mut self, error: RuntimeError) {
+        self.reported_error = Some(error);
     }
 
     /// Fetch the solved rectangle for a zone if available.
@@ -225,6 +390,8 @@ impl<'a> RuntimeContext<'a> {
             redraw_requested: self.redraw_requested,
             exit_requested: self.exit_requested,
             cursor_hint: self.cursor_hint,
+            cursor_update: self.cursor_update,
+            error: self.reported_error,
         }
     }
 }
@@ -234,6 +401,8 @@ struct ContextOutcome {
     redraw_requested: bool,
     exit_requested: bool,
     cursor_hint: Option<(u16, u16)>,
+    cursor_update: CursorUpdate,
+    error: Option<RuntimeError>,
 }
 
 struct ZoneUpdate {
@@ -242,10 +411,141 @@ struct ZoneUpdate {
     pre_rendered: bool,
 }
 
+#[derive(Default)]
+struct CursorUpdate {
+    position: Option<(u16, u16)>,
+    visible: Option<bool>,
+    char: Option<Option<char>>,
+    style: Option<Option<CursorStyle>>,
+}
+
+impl CursorUpdate {
+    fn is_empty(&self) -> bool {
+        self.position.is_none()
+            && self.visible.is_none()
+            && self.char.is_none()
+            && self.style.is_none()
+    }
+}
+
+#[derive(Default)]
+struct CursorManager {
+    current: Cursor,
+}
+
+impl CursorManager {
+    fn new() -> Self {
+        Self {
+            current: Cursor::default(),
+        }
+    }
+
+    fn apply_update(&mut self, update: &CursorUpdate) -> Vec<CursorEvent> {
+        if update.is_empty() {
+            return Vec::new();
+        }
+
+        let mut next = self.current.clone();
+
+        if let Some(position) = update.position {
+            next.position = position;
+        }
+
+        if let Some(visible) = update.visible {
+            next.visible = visible;
+        }
+
+        if let Some(char_update) = update.char.clone() {
+            next.char = char_update;
+        }
+
+        if let Some(style_update) = update.style.clone() {
+            next.style = style_update;
+        }
+
+        let mut events = Vec::new();
+
+        if next.position != self.current.position || update.char.is_some() || update.style.is_some()
+        {
+            events.push(CursorEvent::Moved(next.clone()));
+        }
+
+        if !self.current.visible && next.visible {
+            events.push(CursorEvent::Shown(next.clone()));
+        } else if self.current.visible && !next.visible {
+            events.push(CursorEvent::Hidden(next.clone()));
+        }
+
+        self.current = next;
+        events
+    }
+}
+
 /// Behaviour injection point for the runtime.
 pub trait RoomPlugin: Send {
     fn name(&self) -> &str {
         "room_plugin"
+    }
+
+    fn on_boot(&mut self, _ctx: &mut RuntimeContext<'_>) -> Result<()> {
+        Ok(())
+    }
+
+    fn on_setup(&mut self, _ctx: &mut RuntimeContext<'_>) -> Result<()> {
+        Ok(())
+    }
+
+    fn on_user_ready(&mut self, _ctx: &mut RuntimeContext<'_>) -> Result<()> {
+        Ok(())
+    }
+
+    fn on_user_end(&mut self, _ctx: &mut RuntimeContext<'_>) -> Result<()> {
+        Ok(())
+    }
+
+    fn on_cleanup(&mut self, _ctx: &mut RuntimeContext<'_>) -> Result<()> {
+        Ok(())
+    }
+
+    fn on_close(&mut self, _ctx: &mut RuntimeContext<'_>) -> Result<()> {
+        Ok(())
+    }
+
+    fn on_error(
+        &mut self,
+        _ctx: &mut RuntimeContext<'_>,
+        _error: &mut RuntimeError,
+    ) -> Result<()> {
+        Ok(())
+    }
+
+    fn on_recover_or_fatal(
+        &mut self,
+        _ctx: &mut RuntimeContext<'_>,
+        _error: &RuntimeError,
+        _recovered: bool,
+    ) -> Result<()> {
+        Ok(())
+    }
+
+    fn on_fatal(&mut self, _ctx: &mut RuntimeContext<'_>) -> Result<()> {
+        Ok(())
+    }
+
+    fn on_cursor_event(
+        &mut self,
+        _ctx: &mut RuntimeContext<'_>,
+        _event: &CursorEvent,
+    ) -> Result<()> {
+        Ok(())
+    }
+
+    fn on_focus_change(
+        &mut self,
+        _ctx: &mut RuntimeContext<'_>,
+        _change: &FocusChange,
+    ) -> Result<()> {
+        Ok(())
     }
 
     fn init(&mut self, _ctx: &mut RuntimeContext<'_>) -> Result<()> {
@@ -284,6 +584,14 @@ pub struct RoomRuntime {
     audit: Arc<dyn RuntimeAudit>,
     current_size: Size,
     screen_manager: Option<ScreenManager>,
+    user_ready_emitted: bool,
+    user_end_emitted: bool,
+    cursor_manager: CursorManager,
+    pending_cursor_events: Vec<CursorEvent>,
+    pending_focus_changes: Vec<FocusChange>,
+    pending_errors: Vec<RuntimeError>,
+    last_focus_entry: Option<FocusEntry>,
+    fatal_active: bool,
 }
 
 impl RoomRuntime {
@@ -322,6 +630,14 @@ impl RoomRuntime {
             audit,
             current_size: initial_size,
             screen_manager: None,
+            user_ready_emitted: false,
+            user_end_emitted: false,
+            cursor_manager: CursorManager::new(),
+            pending_cursor_events: Vec::new(),
+            pending_focus_changes: Vec::new(),
+            pending_errors: Vec::new(),
+            last_focus_entry: None,
+            fatal_active: false,
         };
         runtime.audit_record(RuntimeAuditStage::RuntimeConstructed, []);
         Ok(runtime)
@@ -385,6 +701,26 @@ impl RoomRuntime {
         self.handle_resize(size)
     }
 
+    pub fn signal_open(&mut self) {
+        self.audit_record(RuntimeAuditStage::Open, []);
+        self.log_lifecycle_stage("open");
+    }
+
+    pub fn signal_end(&mut self) {
+        self.audit_record(RuntimeAuditStage::End, []);
+        self.log_lifecycle_stage("end");
+    }
+
+    pub fn signal_close(&mut self) -> Result<()> {
+        if self.fatal_active {
+            self.audit_record(RuntimeAuditStage::FatalClose, []);
+            self.log_lifecycle_stage("fatal_close");
+        }
+        self.audit_record(RuntimeAuditStage::Close, []);
+        self.log_lifecycle_stage("close");
+        self.notify_plugins(|plugin, ctx| plugin.on_close(ctx))
+    }
+
     /// Obtain a handle to the shared state map managed by the runtime.
     pub fn shared_state_handle(&self) -> shared_state::SharedState {
         self.shared_state.clone()
@@ -443,8 +779,7 @@ impl RoomRuntime {
             self.maybe_emit_metrics();
         }
 
-        self.finalize();
-        Ok(())
+        self.finalize()
     }
 
     pub fn run_scripted<I>(&mut self, stdout: &mut impl Write, events: I) -> Result<()>
@@ -466,8 +801,7 @@ impl RoomRuntime {
                 break;
             }
         }
-        self.finalize();
-        Ok(())
+        self.finalize()
     }
 
     /// Obtain fine-grained control over the bootstrap phase without automatically forcing
@@ -485,6 +819,19 @@ impl RoomRuntime {
     fn dispatch_event(&mut self, event: RuntimeEvent) -> Result<()> {
         let mut consumed = false;
         let mut consumed_by: Option<String> = None;
+        let loop_kind = LoopEventKind::from_runtime_event(&event);
+
+        if let Some(kind) = loop_kind {
+            self.audit_record(
+                RuntimeAuditStage::LoopIn,
+                [json_kv("kind", json!(kind.as_str()))],
+            );
+            self.log_runtime_event(
+                LogLevel::Debug,
+                "loop_in",
+                [json_kv("kind", json!(kind.as_str()))],
+            );
+        }
 
         if self.screen_manager.is_some() {
             let mut manager = self
@@ -584,6 +931,25 @@ impl RoomRuntime {
         }
         self.audit_record_event(builder.finish());
         self.maybe_emit_metrics();
+        if let Some(kind) = loop_kind {
+            self.audit_record(
+                RuntimeAuditStage::LoopOut,
+                [
+                    json_kv("kind", json!(kind.as_str())),
+                    json_kv("consumed", json!(consumed)),
+                ],
+            );
+            self.log_runtime_event(
+                LogLevel::Debug,
+                "loop_out",
+                [
+                    json_kv("kind", json!(kind.as_str())),
+                    json_kv("consumed", json!(consumed)),
+                ],
+            );
+        }
+        self.flush_notifications()?;
+        self.process_pending_errors()?;
         Ok(())
     }
 
@@ -617,6 +983,12 @@ impl RoomRuntime {
             let mut builder = RuntimeAuditEventBuilder::new(RuntimeAuditStage::RenderCommitted);
             builder.detail("dirty_zones", json!(dirty.len()));
             self.audit_record_event(builder.finish());
+            if !self.user_ready_emitted {
+                self.user_ready_emitted = true;
+                self.audit_record(RuntimeAuditStage::UserReady, []);
+                self.log_lifecycle_stage("user_ready");
+                self.notify_plugins(|plugin, ctx| plugin.on_user_ready(ctx))?;
+            }
         }
 
         for idx in 0..self.plugins.len() {
@@ -633,6 +1005,9 @@ impl RoomRuntime {
             self.redraw_requested = true;
         }
 
+        self.flush_notifications()?;
+        self.process_pending_errors()?;
+
         Ok(())
     }
 
@@ -642,6 +1017,8 @@ impl RoomRuntime {
             redraw_requested,
             exit_requested,
             cursor_hint,
+            cursor_update,
+            error,
         } = outcome;
 
         let update_count = zone_updates.len();
@@ -670,11 +1047,196 @@ impl RoomRuntime {
             self.renderer.settings_mut().restore_cursor = Some(cursor);
         }
 
+        if !cursor_update.is_empty() {
+            if let Some(position) = cursor_update.position {
+                self.renderer.settings_mut().restore_cursor = Some(position);
+            }
+            if let Some(visible) = cursor_update.visible {
+                self.renderer.settings_mut().cursor_visible = Some(visible);
+            }
+            let events = self.cursor_manager.apply_update(&cursor_update);
+            if !events.is_empty() {
+                self.pending_cursor_events.extend(events);
+            }
+        }
+
         if exit_requested {
+            if !self.user_end_emitted {
+                self.user_end_emitted = true;
+                self.audit_record(RuntimeAuditStage::UserEnd, []);
+                self.log_lifecycle_stage("user_end");
+                self.notify_plugins(|plugin, ctx| plugin.on_user_end(ctx))?;
+            }
             self.should_exit = true;
             self.log_runtime_event(LogLevel::Info, "exit_requested", std::iter::empty());
         }
 
+        if let Some(error) = error {
+            self.pending_errors.push(error);
+        }
+
+        self.detect_focus_change()?;
+
+        Ok(())
+    }
+
+    fn detect_focus_change(&mut self) -> Result<()> {
+        let ctx = RuntimeContext::new(&self.rects, &self.shared_state);
+        if let Ok(registry) = ensure_focus_registry(&ctx) {
+            let current = registry.current();
+            if current != self.last_focus_entry {
+                let change = FocusChange {
+                    from: self.last_focus_entry.as_ref().map(|entry| FocusTarget {
+                        owner: Some(entry.owner.clone()),
+                        zone: entry.zone_id.clone(),
+                    }),
+                    to: current.as_ref().map(|entry| FocusTarget {
+                        owner: Some(entry.owner.clone()),
+                        zone: entry.zone_id.clone(),
+                    }),
+                };
+                self.pending_focus_changes.push(change);
+                self.last_focus_entry = current;
+            }
+        }
+        Ok(())
+    }
+
+    fn flush_notifications(&mut self) -> Result<()> {
+        let cursor_events = std::mem::take(&mut self.pending_cursor_events);
+        for event in cursor_events {
+            match &event {
+                CursorEvent::Moved(cursor) => {
+                    self.audit_record(
+                        RuntimeAuditStage::CursorMoved,
+                        [
+                            json_kv("row", json!(cursor.position.0)),
+                            json_kv("col", json!(cursor.position.1)),
+                        ],
+                    );
+                    self.log_runtime_event(
+                        LogLevel::Debug,
+                        "cursor_moved",
+                        [
+                            json_kv("row", json!(cursor.position.0)),
+                            json_kv("col", json!(cursor.position.1)),
+                            json_kv("visible", json!(cursor.visible)),
+                        ],
+                    );
+                }
+                CursorEvent::Shown(_) => {
+                    self.audit_record(RuntimeAuditStage::CursorShown, []);
+                    self.log_runtime_event(LogLevel::Debug, "cursor_shown", std::iter::empty());
+                }
+                CursorEvent::Hidden(_) => {
+                    self.audit_record(RuntimeAuditStage::CursorHidden, []);
+                    self.log_runtime_event(LogLevel::Debug, "cursor_hidden", std::iter::empty());
+                }
+            }
+            let event_clone = event.clone();
+            self.notify_plugins(|plugin, ctx| plugin.on_cursor_event(ctx, &event_clone))?;
+        }
+
+        let focus_changes = std::mem::take(&mut self.pending_focus_changes);
+        for change in focus_changes {
+            self.audit_record(
+                RuntimeAuditStage::FocusChanged,
+                [
+                    json_kv(
+                        "from",
+                        json!(change
+                            .from
+                            .as_ref()
+                            .map(|target| target.zone.clone())
+                            .unwrap_or_else(|| "".to_string())),
+                    ),
+                    json_kv(
+                        "to",
+                        json!(change
+                            .to
+                            .as_ref()
+                            .map(|target| target.zone.clone())
+                            .unwrap_or_else(|| "".to_string())),
+                    ),
+                ],
+            );
+            self.log_runtime_event(
+                LogLevel::Debug,
+                "focus_changed",
+                [
+                    json_kv(
+                        "from",
+                        json!(
+                            change
+                                .from
+                                .as_ref()
+                                .map(|target| target.zone.clone())
+                                .unwrap_or_else(|| "".to_string())
+                        ),
+                    ),
+                    json_kv(
+                        "to",
+                        json!(
+                            change
+                                .to
+                                .as_ref()
+                                .map(|target| target.zone.clone())
+                                .unwrap_or_else(|| "".to_string())
+                        ),
+                    ),
+                ],
+            );
+            let change_clone = change.clone();
+            self.notify_plugins(|plugin, ctx| plugin.on_focus_change(ctx, &change_clone))?;
+        }
+
+        Ok(())
+    }
+
+    fn process_pending_errors(&mut self) -> Result<()> {
+        let errors = std::mem::take(&mut self.pending_errors);
+        for mut error in errors {
+            self.audit_record(
+                RuntimeAuditStage::Error,
+                [
+                    json_kv("category", json!(error.category.clone())),
+                    json_kv("source", json!(error.source.clone())),
+                    json_kv("recoverable", json!(error.recoverable)),
+                ],
+            );
+            self.log_runtime_event(
+                LogLevel::Error,
+                "runtime_error",
+                [
+                    json_kv("category", json!(error.category.clone())),
+                    json_kv("message", json!(error.message.clone())),
+                ],
+            );
+
+            self.notify_plugins(|plugin, ctx| plugin.on_error(ctx, &mut error))?;
+
+            let recovered = error.recoverable;
+
+            self.audit_record(
+                RuntimeAuditStage::RecoverOrFatal,
+                [json_kv("recovered", json!(recovered))],
+            );
+            self.notify_plugins(|plugin, ctx| plugin.on_recover_or_fatal(ctx, &error, recovered))?;
+
+            if recovered {
+                self.log_runtime_event(
+                    LogLevel::Info,
+                    "runtime_error_recovered",
+                    [json_kv("category", json!(error.category.clone()))],
+                );
+            } else {
+                self.audit_record(RuntimeAuditStage::Fatal, []);
+                self.log_lifecycle_stage("fatal");
+                self.notify_plugins(|plugin, ctx| plugin.on_fatal(ctx))?;
+                self.fatal_active = true;
+                self.should_exit = true;
+            }
+        }
         Ok(())
     }
 
@@ -727,6 +1289,13 @@ impl RoomRuntime {
     fn bootstrap_prepare(&mut self) -> Result<()> {
         self.should_exit = false;
         self.redraw_requested = true;
+        self.user_ready_emitted = false;
+        self.user_end_emitted = false;
+        self.fatal_active = false;
+        self.pending_cursor_events.clear();
+        self.pending_focus_changes.clear();
+        self.pending_errors.clear();
+        self.last_focus_entry = None;
         self.ensure_metrics_initialized();
         let now = Instant::now();
         self.start_instant = Some(now);
@@ -740,6 +1309,10 @@ impl RoomRuntime {
                 json_kv("zones", json!(self.rects.len())),
             ],
         );
+
+        self.audit_record(RuntimeAuditStage::Boot, []);
+        self.log_lifecycle_stage("boot");
+        self.notify_plugins(|plugin, ctx| plugin.on_boot(ctx))?;
 
         for idx in 0..self.plugins.len() {
             let (plugin_name, priority, outcome) = {
@@ -766,6 +1339,9 @@ impl RoomRuntime {
             self.audit_record_event(builder.finish());
         }
         self.apply_configured_focus()?;
+        self.audit_record(RuntimeAuditStage::Setup, []);
+        self.log_lifecycle_stage("setup");
+        self.notify_plugins(|plugin, ctx| plugin.on_setup(ctx))?;
         Ok(())
     }
 
@@ -784,7 +1360,14 @@ impl RoomRuntime {
         Ok(())
     }
 
-    fn finalize(&mut self) {
+    fn finalize(&mut self) -> Result<()> {
+        if self.fatal_active {
+            self.audit_record(RuntimeAuditStage::FatalCleanup, []);
+            self.log_lifecycle_stage("fatal_cleanup");
+        }
+        self.audit_record(RuntimeAuditStage::Cleanup, []);
+        self.log_lifecycle_stage("cleanup");
+        self.notify_plugins(|plugin, ctx| plugin.on_cleanup(ctx))?;
         let uptime_ms = self
             .start_instant
             .map(|start| start.elapsed().as_millis())
@@ -797,6 +1380,9 @@ impl RoomRuntime {
         let mut builder = RuntimeAuditEventBuilder::new(RuntimeAuditStage::RuntimeStopped);
         builder.detail("uptime_ms", json!(uptime_ms));
         self.audit_record_event(builder.finish());
+        self.flush_notifications()?;
+        self.process_pending_errors()?;
+        Ok(())
     }
 
     fn ensure_metrics_initialized(&mut self) {
@@ -829,6 +1415,30 @@ impl RoomRuntime {
             let event = event_with_fields(level, "room::runtime", message, fields);
             let _ = logger.log_event(event);
         }
+    }
+
+    fn log_lifecycle_stage(&self, stage: &str) {
+        self.log_runtime_event(
+            LogLevel::Debug,
+            "lifecycle",
+            [json_kv("stage", json!(stage))],
+        );
+    }
+
+    fn notify_plugins<F>(&mut self, mut hook: F) -> Result<()>
+    where
+        F: for<'a> FnMut(&mut dyn RoomPlugin, &mut RuntimeContext<'a>) -> Result<()>,
+    {
+        for idx in 0..self.plugins.len() {
+            let outcome = {
+                let entry = &mut self.plugins[idx];
+                let mut ctx = RuntimeContext::new(&self.rects, &self.shared_state);
+                hook(entry.plugin.as_mut(), &mut ctx)?;
+                ctx.into_outcome()
+            };
+            self.apply_outcome(outcome)?;
+        }
+        Ok(())
     }
 
     fn record_event_metric(&mut self) {
@@ -892,6 +1502,25 @@ impl RoomRuntime {
 
     fn describe_event(event: &RuntimeEvent) -> &'static str {
         match event {
+            RuntimeEvent::Open => "open",
+            RuntimeEvent::Boot => "boot",
+            RuntimeEvent::Setup => "setup",
+            RuntimeEvent::UserReady => "user_ready",
+            RuntimeEvent::LoopIn { .. } => "loop_in",
+            RuntimeEvent::LoopOut { .. } => "loop_out",
+            RuntimeEvent::UserEnd => "user_end",
+            RuntimeEvent::Cleanup => "cleanup",
+            RuntimeEvent::End => "end",
+            RuntimeEvent::Close => "close",
+            RuntimeEvent::Error(_) => "error",
+            RuntimeEvent::RecoverOrFatal { .. } => "recover_or_fatal",
+            RuntimeEvent::Fatal => "fatal",
+            RuntimeEvent::FatalCleanup => "fatal_cleanup",
+            RuntimeEvent::FatalClose => "fatal_close",
+            RuntimeEvent::CursorMoved(_) => "cursor_moved",
+            RuntimeEvent::CursorShown(_) => "cursor_shown",
+            RuntimeEvent::CursorHidden(_) => "cursor_hidden",
+            RuntimeEvent::FocusChanged(_) => "focus_changed",
             RuntimeEvent::Tick { .. } => "tick",
             RuntimeEvent::Key(_) => "key",
             RuntimeEvent::Mouse(_) => "mouse",

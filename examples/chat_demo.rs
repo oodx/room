@@ -165,6 +165,7 @@ impl RoomPlugin for ChatPlugin {
             | RuntimeEvent::FocusLost
             | RuntimeEvent::Paste(_)
             | RuntimeEvent::Raw(_) => Ok(EventFlow::Continue),
+            _ => Ok(EventFlow::Continue),
         }
     }
 

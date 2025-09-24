@@ -780,6 +780,7 @@ impl RoomPlugin for BoxyDashboardPlugin {
             | RuntimeEvent::Mouse(_)
             | RuntimeEvent::Paste(_)
             | RuntimeEvent::Raw(_) => Ok(EventFlow::Continue),
+            _ => Ok(EventFlow::Continue),
         }
     }
 

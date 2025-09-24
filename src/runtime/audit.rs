@@ -15,6 +15,44 @@ use serde_json::Value;
 pub enum RuntimeAuditStage {
     /// A new runtime instance was constructed.
     RuntimeConstructed,
+    /// Driver is preparing terminal (raw mode, alternate screen).
+    Open,
+    /// Runtime boot sequence starting.
+    Boot,
+    /// Runtime setup finished pre-first render.
+    Setup,
+    /// First frame committed; user interaction can begin.
+    UserReady,
+    /// Event dispatch about to run.
+    LoopIn,
+    /// Event dispatch finished.
+    LoopOut,
+    /// User-requested session end in progress.
+    UserEnd,
+    /// Runtime cleanup prior to driver teardown.
+    Cleanup,
+    /// Driver exiting alternate screen / raw mode.
+    End,
+    /// Session fully closed.
+    Close,
+    /// Recoverable or fatal-error candidate detected.
+    Error,
+    /// Recovery attempted; payload indicates outcome.
+    RecoverOrFatal,
+    /// Fatal teardown initiated.
+    Fatal,
+    /// Fatal cleanup in progress.
+    FatalCleanup,
+    /// Fatal teardown completed.
+    FatalClose,
+    /// Cursor moved or changed characteristics.
+    CursorMoved,
+    /// Cursor became visible.
+    CursorShown,
+    /// Cursor became hidden.
+    CursorHidden,
+    /// Focus changed between zones/components.
+    FocusChanged,
     /// Bootstrap has started (plugins running their `init` hooks).
     BootstrapStarted,
     /// A plugin was registered with the runtime.

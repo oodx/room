@@ -9,12 +9,14 @@ use crate::registry::{ZoneId, ZoneState};
 #[derive(Debug, Clone)]
 pub struct RendererSettings {
     pub restore_cursor: Option<(u16, u16)>,
+    pub cursor_visible: Option<bool>,
 }
 
 impl Default for RendererSettings {
     fn default() -> Self {
         Self {
             restore_cursor: None,
+            cursor_visible: None,
         }
     }
 }
@@ -44,6 +46,15 @@ impl AnsiRenderer {
 
         if let Some((row, col)) = self.settings.restore_cursor {
             write!(writer, "\x1b[{};{}H", row + 1, col + 1)?;
+        }
+
+        if let Some(visible) = self.settings.cursor_visible {
+            if visible {
+                write!(writer, "\x1b[?25h")?;
+            } else {
+                write!(writer, "\x1b[?25l")?;
+            }
+            self.settings.cursor_visible = None;
         }
 
         writer.flush()?;

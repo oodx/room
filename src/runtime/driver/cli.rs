@@ -33,9 +33,14 @@ impl CliDriver {
 
     pub fn run(mut self) -> DriverResult<()> {
         let mut stdout = io::stdout();
+        self.runtime.signal_open();
         self.enter(&mut stdout)?;
         let result = self.run_inner(&mut stdout);
+        self.runtime.signal_end();
         self.exit(&mut stdout);
+        if let Err(close_err) = self.runtime.signal_close() {
+            return Err(CliDriverError::Runtime(close_err));
+        }
         result
     }
 

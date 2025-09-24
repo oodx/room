@@ -1,30 +1,28 @@
 # Continue Log – main · Runtime Audit & First-Paint Prototypes
 
 ## Summary
-- Landed SCREEN-106: added `examples/workshop_screen_multiscreen.rs` to exercise dashboard/settings/activity flows with shared state, plus the companion guide in `docs/ref/workshops/workshop_screen_multiscreen.md`.
-- Updated README, QUICK_REF, SPRINT, TASKS, CONTINUE, DONE, and META_PROCESS to reflect the new workshop and close out SCREEN-106 in the backlog.
-- Multi-screen navigation now has an end-to-end workshop; remaining runtime work focuses on validation across terminals and Boxy workshop hygiene.
+- Prototyped three new runtime workshops: `mud_mini_game`, `mud_boxy_game`, and `workshop_debug_zone`, each with draft guides capturing current behaviour (≈60% complete).
+- Updated TASKS/BACKLOG/ROADMAP to track follow-up work for the new workshops (polish, exercises, tests) and documented partial status in the new workshop pages.
+- Added logging/counter guards to the debug workshop so dirty-zone logs stay bounded and events identify their source (key, focus, mouse, action).
 
 ## Current Status
 - **Branch**: main
-- **Phase**: Runtime & Plugin Phase 2 (observability + first paint prototypes)
-- **Progress**: Audit + bootstrap infrastructure is stable; screen manager and navigation helpers are live across demos; documentation and onboarding material now match the new runtime surface; remaining work centres on multi-screen education and workshop hardening.
+- **Phase**: Runtime & Plugin Phase 2 (observability + hands-on workshops)
+- **Progress**: Runtime core + screen manager remain stable; we now have prototype workshops covering multi-screen flows, MUD gameplay (ASCII + Boxy), and dirty-zone inspection. Each workshop is functional but needs exercises, troubleshooting, and additional UX polish before graduation.
 
 ## Next Steps (Priority Order)
-1. Close WORKSHOP-201A by addressing the Boxy dashboard workshop defects and updating the guide with troubleshooting notes.
-2. Outline WORKSHOP-301 (first paint performance) with fresh `cargo bench --bench runtime` baselines once 201A is stable.
-3. Feed multi-screen learnings back into `docs/ref/strat/SCREEN_ZONE_STRATEGY.md` (patterns, navigator usage) after follow-up testing results arrive.
+1. Finish WORKSHOP-204/205/206 polish: add exercises + troubleshooting to the new workshop docs, tune Boxy tile sizing, and add scripted coverage for the debug workshop.
+2. Resume WORKSHOP-201A fixes (prompt UX + guidance) so the legacy Boxy path reaches parity with the new material.
+3. Outline WORKSHOP-301 (first-paint performance) once fresh runtime baselines are captured, then fold learnings back into `docs/ref/strat/RUNTIME_STRATEGY.md`.
 
 ## Blockers / Risks
-- Cross-terminal behaviour for the audit/bootstrap demos is still unverified; the UAT sweep is logged as BACKLOG item ROOM-UAT-001 until we schedule it.
-- Boxy workshop defects (WORKSHOP-201A) remain unresolved; they could confuse newcomers now that docs emphasise the workshop path.
-- Bootstrap/audit helpers must stay the default path—any new demo that bypasses them will reintroduce pre-render log spam.
+- WORKSHOP-204/205 remain prototypes; without completing exercises/tests we risk shipping partially documented workflows.
+- Boxy dashboard (WORKSHOP-201A) still needs UX fixes and better troubleshooting to match the new workshop quality bar.
+- UAT sweep (ROOM-UAT-001) unchanged; cross-terminal verification still outstanding for all workshops/demos.
 
 ## Notes for Next Agent
-- All process docs now live under `docs/procs/*.md`; README + META_PROCESS were updated to reflect the structure—mirror that pattern for future guidance.
-- If you add new critical docs, extend `bin/validate-docs.sh` and note the change in `docs/procs/PROCESS.md`.
-- Keep logging completions in `docs/procs/DONE.md` once sprint items land; validator silence depends on it.
-- For audit/screen work, start with `examples/audit_demo.rs` and `examples/workshop_screen_navigation.rs`; `bin/examples.sh run <example>` remains the quickest smoke harness.
-- The new `examples/workshop_screen_multiscreen.rs` pairs with `docs/ref/workshops/workshop_screen_multiscreen.md`—use it to demo shared state + navigator flows when onboarding.
-- UAT debt sits in `docs/procs/BACKLOG.md` (ROOM-UAT-001); update CONTINUE once we schedule or complete the sweep.
-- Bootstrap helpers (`examples/bootstrap_helper.rs`, `examples/workshop_room_bootstrap.rs`) show how to gate renders; ensure any new demo opts into them before measuring audit output.
+- New workshop docs live at `docs/ref/workshops/workshop_mud_mini_game.md`, `workshop_mud_boxy_game.md`, and `workshop_debug_zone.md`; each lists TODOs and links to follow-up backlog items.
+- If you iterate on these workshops, update TASKS/BACKLOG entries (WORKSHOP-204/205/206) and refresh the docs so validator checks stay quiet.
+- Debug workshop now bounds the log and labels events; if you expand functionality, keep the log guard in sync and consider scripted tests.
+- Boxy/dashboard legacy work (WORKSHOP-201A) and the Phase 2 UAT sweep remain the primary outstanding items beyond workshop polish.
+- Continue using `bin/examples.sh run <example>` for quick validation; ensure new demos still opt into bootstrap/audit helpers.

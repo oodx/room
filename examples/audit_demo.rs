@@ -171,6 +171,7 @@ enum AuditStageLabel {
     Render,
     RenderSkip,
     Stopped,
+    Other(String),
 }
 
 impl std::fmt::Display for AuditStageLabel {
@@ -185,6 +186,7 @@ impl std::fmt::Display for AuditStageLabel {
             Self::Render => "render",
             Self::RenderSkip => "render_skip",
             Self::Stopped => "stopped",
+            Self::Other(label) => label,
         };
         write!(f, "{text:>12}")
     }
@@ -228,6 +230,7 @@ impl RuntimeAudit for BufferAudit {
             RuntimeAuditStage::RenderCommitted => AuditStageLabel::Render,
             RuntimeAuditStage::RenderSkipped => AuditStageLabel::RenderSkip,
             RuntimeAuditStage::RuntimeStopped => AuditStageLabel::Stopped,
+            other => AuditStageLabel::Other(format!("{other:?}")),
         };
 
         if let Ok(mut guard) = self.events.lock() {

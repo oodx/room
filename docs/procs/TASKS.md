@@ -155,6 +155,21 @@
 
 ## MILESTONE 8: Declarative Layout & Examples (Priority: MEDIUM)
 
+### [~] WORKSHOP-204: Room MUD Mini Game (ASCII) [2 pts]
+- `examples/mud_mini_game.rs` scaffolds a room-to-room crawl with inventory + gem collection; cursor + lifecycle issues resolved.
+- Workshop doc pending polish (partial notes live in new draft); needs action list + troubleshooting before marking complete.
+- Follow-up: flesh out NPC interactions and automated tests, align with token protocol guidelines.
+
+### [~] WORKSHOP-205: Boxy MUD Panels [2 pts]
+- `examples/mud_boxy_game.rs` renders the dungeon using Boxy tiles + emoji loot, with navigation and inventory panels.
+- Workshop guide drafted; remaining gaps include focus cues, Boxy color palette tuning, and edge-case handling for map layout.
+- Follow-up: integrate default CLI bundle for prompts, document outstanding behaviors, and add exercises around Boxy customization.
+
+### [~] WORKSHOP-206: Debug Zone Explorer [1 pt]
+- `examples/workshop_debug_zone.rs` logs every `set_zone` call into a dedicated debug panel while showcasing focus toggling.
+- Workshop doc summarizes current behavior but lacks detailed exercises, troubleshooting, and automated coverage.
+- Follow-up: add cursor hinting, richer diagnostics, and scripted regression tests before moving to DONE.
+
 ### [ ] ROOM-605: Layout DSL prototype [4 pts]
 - Design minimal DSL (YAML/HTML-like) that compiles to `LayoutTree` + zone metadata.
 - Support plugin/component declarations (e.g., `<chat-input channel="app:input"/>`).
@@ -164,6 +179,28 @@
 - Rework `chat_workshop` to run on `RoomRuntime` with token stream compliance.
 - Promote slash command/preferences logic into reusable plugins/adapters.
 - Document usage in README or dedicated tutorials.
+
+## MILESTONE 9: Lifecycle & Reliability Enhancements (Priority: CRITICAL)
+
+### [x] ROOM-611: Implement friendly runtime lifecycle events [3 pts]
+- Add the `Open`, `Boot`, `Setup`, `UserReady`, `LoopIn`, `LoopOut`, `UserEnd`, `Cleanup`, `End`, and `Close` variants to `RuntimeEvent` and emit them at the documented checkpoints.
+- Provide matching plugin hooks (`on_boot`, `on_user_ready`, `on_user_end`, etc.) and ensure `CliDriver` surfaces driver-owned markers.
+- Update existing demos/tests to rely on the new lifecycle signals.
+
+### [x] ROOM-612: Ship shared Cursor manager + cursor events [3 pts]
+- Introduce a `Cursor` struct (position, visibility, `char`, style) and a runtime-managed `CursorManager` shared resource.
+- Emit `CursorMoved`, `CursorShown`, and `CursorHidden` events after each cursor change; expose optional `RoomPlugin::on_cursor_change` hook.
+- Refactor default bundles/workshops to consume the manager instead of ad-hoc cursor math.
+
+### [x] ROOM-613: Focus change notifications [2 pts]
+- Extend `FocusController` to emit `FocusChanged` runtime events with `{ from, to }` payloads and provide an `on_focus_change` hook.
+- Ensure focus transitions remain synchronized with cursor updates and screen manager activation.
+- Add coverage in focus-related tests/workshops to validate the new signals.
+
+### [x] ROOM-614: Runtime error sink and fatal teardown [4 pts]
+- Implement a structured error sink that emits `Error` events, coordinates recovery handlers, and escalates to `Fatal`, `FatalCleanup`, and `FatalClose` when necessary.
+- Wire audit stages and driver teardown to respect the fatal path while restoring terminal state safely.
+- Add regression tests covering recoverable errors and fatal shutdown flows.
 
 ---
 
