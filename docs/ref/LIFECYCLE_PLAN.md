@@ -101,6 +101,7 @@ This plan captures the lifecycle names and touch points we want Room sessions to
 - Extend `RuntimeAuditStage` with: `Open`, `Boot`, `Setup`, `UserReady`, `LoopIn`, `LoopOut`, `UserEnd`, `Cleanup`, `End`, `Close`, `Error`, `RecoverOrFatal`, `Fatal`, `FatalCleanup`, `FatalClose`, plus the cursor/focus signals (`CursorMoved`, `CursorHidden`, `CursorShown`, `FocusChanged`).
 - Include structured fields for each stage where relevant: `{ "event": "Key", "consumed": true }` for loop events, `{ "cursor": { ... } }` for cursor updates, `{ "focused": "zone_id" }` for focus shifts, `{ "uptime_ms": u128 }` for teardown stages, `{ "error": { "category": ..., "source": ... } }` for the error path.
 - Update `BootstrapAudit` to flush buffered events once `UserReady` lands, ensuring observers see a coherent first frame before live streaming begins.
+- Use `LoopSimulated` + `LoopSimulatedComplete` to highlight bounded runs. The `examples/workshop_lifecycle_trace.rs` workshop now condenses the audit into a single stage timeline and emits `EventLoop[n]` counters, with branch notes clarifying when a recoverable error was handled or a fatal teardown fired.
 
 ## Adoption Checklist
 1. **Runtime API**
