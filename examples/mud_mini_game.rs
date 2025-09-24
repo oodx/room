@@ -16,6 +16,7 @@ use room_mvp::{
     Result, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent, ScreenDefinition,
     ScreenManager, Size,
 };
+use room_mvp::runtime::FocusChange;
 
 const MAP_ZONE: &str = "mud:map";
 const DESCRIPTION_ZONE: &str = "mud:description";
@@ -246,6 +247,8 @@ struct MudGamePlugin {
     current_room: String,
     inventory: Vec<String>,
     status: String,
+    selected_action: usize,
+    menu_has_focus: bool,
 }
 
 impl MudGamePlugin {
@@ -277,15 +280,34 @@ impl MudGamePlugin {
             current_room: "atrium".to_string(),
             inventory: Vec::new(),
             status: String::from("You step into the atrium. Sunlight warms the stone."),
+            selected_action: 0,
+            menu_has_focus: true,
         }
     }
 
-    fn update_all(&self, ctx: &mut RuntimeContext<'_>) {
+    fn update_all(&mut self, ctx: &mut RuntimeContext<'_>) {
+        self.normalize_selection();
         ctx.set_zone(MAP_ZONE, self.render_map());
         ctx.set_zone(DESCRIPTION_ZONE, self.render_description());
         ctx.set_zone(MENU_ZONE, self.render_menu());
         ctx.set_zone(INVENTORY_ZONE, self.render_inventory());
         ctx.set_zone(STATUS_ZONE, self.render_status());
+
+        if self.menu_has_focus {
+            ctx.show_cursor();
+            ctx.set_cursor_in_zone(MENU_ZONE, (self.selected_action + 1) as i32, 2);
+        } else {
+            ctx.hide_cursor();
+        }
+    }
+
+    fn normalize_selection(&mut self) {
+        let len = self.available_actions().len();
+        if len == 0 {
+            self.selected_action = 0;
+        } else if self.selected_action >= len {
+            self.selected_action = len - 1;
+        }
     }
 
     fn render_map(&self) -> String {
@@ -371,7 +393,12 @@ impl MudGamePlugin {
         let actions = self.available_actions();
         let mut lines = vec!["Actions (press number)".to_string()];
         for (idx, action) in actions.iter().enumerate() {
-            lines.push(format!("{}. {}", idx + 1, action.label));
+            let prefix = if self.menu_has_focus && idx == self.selected_action {
+                ">"
+            } else {
+                " "
+            };
+            lines.push(format!("{prefix}{}. {}", idx + 1, action.label));
         }
         lines.join("\n")
     }
@@ -412,7 +439,8 @@ impl MudGamePlugin {
         actions
     }
 
-    fn handle_action(&mut self, action: ActionKind) {
+    fn handle_action(&mut self, index: usize, action: ActionKind) {
+        self.selected_action = index;
         match action {
             ActionKind::Look => {
                 let description = self
@@ -453,6 +481,18 @@ impl MudGamePlugin {
                     self.status = msg;
                 }
             }
+        }
+    }
+
+    fn apply_focus_change(&mut self, ctx: &mut RuntimeContext<'_>, has_focus: bool) {
+        if self.menu_has_focus != has_focus {
+            self.menu_has_focus = has_focus;
+            self.update_all(ctx);
+        } else if has_focus {
+            ctx.show_cursor();
+            ctx.set_cursor_in_zone(MENU_ZONE, (self.selected_action + 1) as i32, 2);
+        } else {
+            ctx.hide_cursor();
         }
     }
 
@@ -515,7 +555,7 @@ impl RoomPlugin for MudGamePlugin {
                 KeyCode::Char(ch) if ch.is_ascii_digit() => {
                     let idx = (ch as u8) - b'1';
                     if let Some(action) = self.available_actions().get(idx as usize) {
-                        self.handle_action(action.kind);
+                        self.handle_action(idx as usize, action.kind);
                     } else {
                         self.status = format!("Action {ch} is not available here.");
                     }
@@ -532,6 +572,31 @@ impl RoomPlugin for MudGamePlugin {
         }
 
         Ok(room_mvp::EventFlow::Continue)
+    }
+
+    fn on_focus_change(
+        &mut self,
+        ctx: &mut RuntimeContext<'_>,
+        change: &FocusChange,
+    ) -> Result<()> {
+        let to_menu = change
+            .to
+            .as_ref()
+            .map(|target| target.zone == MENU_ZONE)
+            .unwrap_or(false);
+        let from_menu = change
+            .from
+            .as_ref()
+            .map(|target| target.zone == MENU_ZONE)
+            .unwrap_or(false);
+
+        if to_menu {
+            self.apply_focus_change(ctx, true);
+        } else if from_menu {
+            self.apply_focus_change(ctx, false);
+        }
+
+        Ok(())
     }
 }
 

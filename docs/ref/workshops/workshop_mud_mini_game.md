@@ -41,6 +41,9 @@ cargo run --example mud_mini_game
   reduce flicker on larger maps.
 - Inventory actions mutate shared state protected by `Arc<Mutex<EditorState>>`-like patterns. Explore splitting the
   plugin into map/inventory panels once the runtime supports multi-plugin coordination for related zones.
+- The action menu participates in the runtime lifecycle: when the menu zone owns focus, the cursor visibly locks to the
+  highlighted action via `set_cursor_in_zone`, and `FocusChanged` signals drive the pointer on/off. Use this workshop to
+  inspect the new lifecycle events in `room_mvp::RuntimeEvent`.
 - No scripted encounters exist yet; add NPCs or puzzles once the base navigation loop is hardened.
 
 ## TODO / Known Gaps

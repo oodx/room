@@ -12,6 +12,7 @@ use std::collections::VecDeque;
 
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use room_mvp::runtime::focus::{FocusController, ensure_focus_registry};
+use room_mvp::runtime::{CursorEvent, FocusChange};
 use room_mvp::{
     AnsiRenderer, CliDriver, Constraint, Direction, LayoutNode, LayoutTree, LegacyScreenStrategy,
     Result, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent, ScreenDefinition,
@@ -74,7 +75,6 @@ fn build_layout() -> LayoutTree {
 #[derive(Default)]
 struct DebugZoneWorkshop {
     editor_text: String,
-    cursor_col: usize,
     status: String,
     log: VecDeque<String>,
     focus: FocusState,
@@ -107,6 +107,18 @@ impl DebugZoneWorkshop {
             .focus_controller
             .as_mut()
             .expect("focus controller present"))
+    }
+
+    fn cursor_position(&self) -> (usize, usize) {
+        self.editor_text
+            .chars()
+            .fold((0usize, 0usize), |(row, col), ch| {
+                if ch == '\n' {
+                    (row + 1, 0)
+                } else {
+                    (row, col + 1)
+                }
+            })
     }
 
     fn log_dirty(&mut self, ctx: &mut RuntimeContext<'_>, zone: &str, reason: &str) {
@@ -142,9 +154,16 @@ impl DebugZoneWorkshop {
     }
 
     fn refresh_editor(&mut self, ctx: &mut RuntimeContext<'_>) {
+        let (row, col) = self.cursor_position();
         let mut content = self.editor_text.clone();
         content.push_str("\n\n[Type here]");
         ctx.set_zone(EDITOR_ZONE, content);
+        if matches!(self.focus, FocusState::Editor) {
+            ctx.show_cursor();
+            ctx.set_cursor_in_zone(EDITOR_ZONE, row as i32, col as i32);
+        } else {
+            ctx.hide_cursor();
+        }
         self.log_dirty(ctx, EDITOR_ZONE, "Editor updated");
     }
 
@@ -171,6 +190,7 @@ impl DebugZoneWorkshop {
         let controller = self.ensure_focus_controller(ctx)?;
         controller.focus(target);
         self.status = format!("[Focus] {} now has keyboard focus", target);
+        self.refresh_editor(ctx);
         let status_msg = self.status.clone();
         self.refresh_status(ctx, status_msg.as_str());
         Ok(())
@@ -178,17 +198,18 @@ impl DebugZoneWorkshop {
 
     fn handle_char(&mut self, ch: char) {
         self.editor_text.push(ch);
-        self.cursor_col += 1;
-        self.status = format!("[Key] Inserted '{ch}' at column {}", self.cursor_col);
+        let (_, col) = self.cursor_position();
+        self.status = format!("[Key] Inserted '{ch}' at column {col}");
     }
 
     fn handle_backspace(&mut self) {
-        if !self.editor_text.is_empty() {
-            self.editor_text.pop();
-            if self.cursor_col > 0 {
-                self.cursor_col -= 1;
+        if let Some(ch) = self.editor_text.pop() {
+            let (_, col) = self.cursor_position();
+            if ch == '\n' {
+                self.status = format!("[Key] Removed newline, cursor at column {col}");
+            } else {
+                self.status = format!("[Key] Deleted '{ch}', cursor at column {col}");
             }
-            self.status = "[Key] Deleted last character".into();
         } else {
             self.status = "[Key] Nothing left to delete".into();
         }
@@ -259,7 +280,6 @@ impl RoomPlugin for DebugZoneWorkshop {
                 }
                 KeyCode::Enter => {
                     self.editor_text.push('\n');
-                    self.cursor_col = 0;
                     self.status = "[Key] Inserted newline".into();
                     touched_editor = true;
                 }
@@ -292,5 +312,52 @@ impl RoomPlugin for DebugZoneWorkshop {
         }
 
         Ok(room_mvp::EventFlow::Continue)
+    }
+
+    fn on_focus_change(
+        &mut self,
+        ctx: &mut RuntimeContext<'_>,
+        change: &FocusChange,
+    ) -> Result<()> {
+        if let Some(target) = change.to.as_ref() {
+            match target.zone.as_str() {
+                EDITOR_ZONE => {
+                    self.focus = FocusState::Editor;
+                    self.status = "[Focus] Editor ready for input".into();
+                    self.refresh_editor(ctx);
+                }
+                STATUS_ZONE => {
+                    self.focus = FocusState::Status;
+                    ctx.hide_cursor();
+                    self.status = "[Focus] Status bar active".into();
+                }
+                _ => {
+                    ctx.hide_cursor();
+                }
+            }
+        } else {
+            ctx.hide_cursor();
+        }
+
+        let status_msg = self.status.clone();
+        self.refresh_status(ctx, status_msg.as_str());
+        self.log_dirty(ctx, DEBUG_ZONE, "Focus change");
+        Ok(())
+    }
+
+    fn on_cursor_event(&mut self, ctx: &mut RuntimeContext<'_>, event: &CursorEvent) -> Result<()> {
+        let message = match event {
+            CursorEvent::Moved(cursor) => format!(
+                "[Cursor] moved to row {}, col {}",
+                cursor.position.0, cursor.position.1
+            ),
+            CursorEvent::Shown(_) => "[Cursor] shown".to_string(),
+            CursorEvent::Hidden(_) => "[Cursor] hidden".to_string(),
+        };
+        self.log_dirty(ctx, DEBUG_ZONE, &message);
+        self.status = message;
+        let status_msg = self.status.clone();
+        self.refresh_status(ctx, status_msg.as_str());
+        Ok(())
     }
 }

@@ -37,10 +37,13 @@ cargo run --example workshop_debug_zone
 - Focus management uses `FocusController` and `ensure_focus_registry`, demonstrating how to move focus between zones in a
   `RoomPlugin`.
 - The layout dedicates the bottom eight rows to the debug log so zone updates remain visible without scrolling.
+- Cursor + focus lifecycle events are wired into the logger. `CursorMoved`/`CursorShown`/`CursorHidden` and
+  `FocusChanged` signals now produce entries, making it easy to observe the new runtime hooks.
 
 ## Known Gaps
 
-- Cursor hinting is minimal; the terminal cursor is not repositioned, relying on the prime runtime behavior.
+- Cursor hinting now follows the editor focus via `set_cursor_in_zone`; explore additional affordances (selection
+  blocks, caret styles) in future iterations.
 - No syntax highlighting or multi-line editing — the editor is intentionally simple.
 - Tests and scripted driver coverage are missing; add once the log semantics are locked in.
 - Workshop doc still needs hands-on exercises (e.g., extend the logger, emit custom events) before graduation.

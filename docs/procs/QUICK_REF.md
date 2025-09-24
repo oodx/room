@@ -4,7 +4,7 @@
 - ✅ Layout engine + runtime plugins (Phase 1 complete, Phase 2 mid-flight)
 - ✅ Audit + bootstrap helpers with demos (`runtime_first_paint`, `audit_demo`, `bootstrap_helper`) shipping
 - ✅ SCREEN-106 multi-screen workshop landed (example + guide); docs/process logs updated
-- 🔄 New prototypes: `mud_mini_game`, `mud_boxy_game`, and `workshop_debug_zone` live with draft docs (≈60%); follow-up polish tasks added to TASKS/BACKLOG
+- 🔄 Updated prototypes: `mud_mini_game`, `mud_boxy_game`, and `workshop_debug_zone` now emit the friendly lifecycle/cursor/focus signals (still ≈60%; polish tracked in TASKS/BACKLOG)
 - ⬆️ Next major push: finish workshop polish (204/205/206), WORKSHOP-201A fixes, WORKSHOP-301 outline; UAT sweep still pending
 
 -🚨 CRITICAL CONTEXT
@@ -18,7 +18,7 @@
 1. WORKSHOP-204/205/206 polish: add exercises, troubleshooting, and tests to the new workshop docs/examples.
 2. WORKSHOP-201A: Resolve Boxy dashboard workshop defects and update the walkthrough.
 3. WORKSHOP-301 prep: Outline first-paint performance workshop, capture `cargo bench --bench runtime` baselines.
-4. Plan the UAT sweep when capacity frees up (ROOM-UAT-001 in `docs/procs/BACKLOG.md`).
+4. Plan the UAT sweeps when capacity frees up (ROOM-UAT-001 terminal coverage + ROOM-UAT-002 lifecycle verification).
 
 🏗️ ARCHITECTURE SNAPSHOT
 - Primary modules: `src/runtime`, `src/layout`, `src/render`, `src/registry`

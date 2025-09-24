@@ -511,11 +511,7 @@ pub trait RoomPlugin: Send {
         Ok(())
     }
 
-    fn on_error(
-        &mut self,
-        _ctx: &mut RuntimeContext<'_>,
-        _error: &mut RuntimeError,
-    ) -> Result<()> {
+    fn on_error(&mut self, _ctx: &mut RuntimeContext<'_>, _error: &mut RuntimeError) -> Result<()> {
         Ok(())
     }
 
@@ -1144,19 +1140,23 @@ impl RoomRuntime {
                 [
                     json_kv(
                         "from",
-                        json!(change
-                            .from
-                            .as_ref()
-                            .map(|target| target.zone.clone())
-                            .unwrap_or_else(|| "".to_string())),
+                        json!(
+                            change
+                                .from
+                                .as_ref()
+                                .map(|target| target.zone.clone())
+                                .unwrap_or_else(|| "".to_string())
+                        ),
                     ),
                     json_kv(
                         "to",
-                        json!(change
-                            .to
-                            .as_ref()
-                            .map(|target| target.zone.clone())
-                            .unwrap_or_else(|| "".to_string())),
+                        json!(
+                            change
+                                .to
+                                .as_ref()
+                                .map(|target| target.zone.clone())
+                                .unwrap_or_else(|| "".to_string())
+                        ),
                     ),
                 ],
             );

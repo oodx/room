@@ -14,6 +14,7 @@ use std::time::Duration;
 
 use boxy::{BoxColors, BoxyConfig, WidthConfig, render_to_string};
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
+use room_mvp::runtime::FocusChange;
 use room_mvp::{
     AnsiRenderer, CliDriver, Constraint, Direction, LayoutNode, LayoutTree, LegacyScreenStrategy,
     Result, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent, ScreenDefinition,
@@ -239,6 +240,8 @@ struct BoxyMudPlugin {
     inventory: Vec<String>,
     status: String,
     action_hint: String,
+    selected_action: usize,
+    nav_has_focus: bool,
 }
 
 impl BoxyMudPlugin {
@@ -269,15 +272,35 @@ impl BoxyMudPlugin {
             inventory: Vec::new(),
             status: String::from("You arrive in the Sunlit Atrium."),
             action_hint: String::from("Use 1: Inspect · 2: Collect · 3: Drop · 4: Inventory"),
+            selected_action: 0,
+            nav_has_focus: true,
         }
     }
 
-    fn update_all(&self, ctx: &mut RuntimeContext<'_>) {
+    fn update_all(&mut self, ctx: &mut RuntimeContext<'_>) {
+        self.normalize_selection();
         ctx.set_zone_pre_rendered(MAP_ZONE, self.render_map());
         ctx.set_zone(DETAIL_ZONE, self.render_detail());
         ctx.set_zone(STATUS_ZONE, self.render_status());
         ctx.set_zone(INVENTORY_ZONE, self.render_inventory());
         ctx.set_zone_pre_rendered(NAV_ZONE, self.render_navigation());
+
+        if self.nav_has_focus {
+            ctx.show_cursor();
+            // cursor row: Boxy panel includes header line, then actions start at row 2.
+            ctx.set_cursor_in_zone(NAV_ZONE, (self.selected_action + 1) as i32, 3);
+        } else {
+            ctx.hide_cursor();
+        }
+    }
+
+    fn normalize_selection(&mut self) {
+        let actions = self.available_actions();
+        if actions.is_empty() {
+            self.selected_action = 0;
+        } else if self.selected_action >= actions.len() {
+            self.selected_action = actions.len() - 1;
+        }
     }
 
     fn render_map(&self) -> String {
@@ -367,11 +390,24 @@ impl BoxyMudPlugin {
     }
 
     fn render_navigation(&self) -> String {
+        let actions = self.available_actions();
+        let mut lines = vec![self.action_hint.clone()];
+        for (idx, action) in actions.iter().enumerate() {
+            let marker = if self.nav_has_focus && idx == self.selected_action {
+                "▶"
+            } else {
+                " "
+            };
+            lines.push(format!(
+                "{marker}{}: {}",
+                idx + 1,
+                self.action_label(*action)
+            ));
+        }
+        lines.push("Arrows move between rooms · Esc quits".to_string());
+
         let config = BoxyConfig {
-            text: format!(
-                "{}\n{}",
-                self.action_hint, "Arrows move between rooms · Esc quits"
-            ),
+            text: lines.join("\n"),
             title: Some("Navigation".to_string()),
             colors: BoxColors {
                 box_color: "teal".to_string(),
@@ -386,7 +422,7 @@ impl BoxyMudPlugin {
                 enable_wrapping: true,
                 ..WidthConfig::default()
             },
-            fixed_height: Some(3),
+            fixed_height: Some(3 + actions.len()),
             ..Default::default()
         };
         render_to_string(&config)
@@ -406,7 +442,17 @@ impl BoxyMudPlugin {
         actions
     }
 
-    fn perform_action(&mut self, action: ActionKind) {
+    fn action_label(&self, action: ActionKind) -> &'static str {
+        match action {
+            ActionKind::Inspect => "Inspect",
+            ActionKind::Collect => "Collect",
+            ActionKind::Drop => "Drop",
+            ActionKind::Inventory => "Inventory",
+        }
+    }
+
+    fn perform_action(&mut self, index: usize, action: ActionKind) {
+        self.selected_action = index;
         match action {
             ActionKind::Inspect => {
                 let detail = self
@@ -468,6 +514,29 @@ impl BoxyMudPlugin {
             );
         }
     }
+
+    fn cycle_action(&mut self, ctx: &mut RuntimeContext<'_>, direction: i32) {
+        let len = self.available_actions().len();
+        if len == 0 {
+            return;
+        }
+        let current = self.selected_action as i32;
+        let next = (current + direction).rem_euclid(len as i32);
+        self.selected_action = next as usize;
+        self.update_all(ctx);
+    }
+
+    fn apply_focus_change(&mut self, ctx: &mut RuntimeContext<'_>, has_focus: bool) {
+        if self.nav_has_focus != has_focus {
+            self.nav_has_focus = has_focus;
+            self.update_all(ctx);
+        } else if has_focus {
+            ctx.show_cursor();
+            ctx.set_cursor_in_zone(NAV_ZONE, (self.selected_action + 1) as i32, 3);
+        } else {
+            ctx.hide_cursor();
+        }
+    }
 }
 
 impl RoomPlugin for BoxyMudPlugin {
@@ -505,9 +574,41 @@ impl RoomPlugin for BoxyMudPlugin {
                 KeyCode::Char(ch) if ch.is_ascii_digit() => {
                     let idx = (ch as u8) - b'1';
                     if let Some(action) = self.available_actions().get(idx as usize) {
-                        self.perform_action(*action);
+                        self.perform_action(idx as usize, *action);
+                        self.update_all(ctx);
+                        return Ok(room_mvp::EventFlow::Consumed);
                     } else {
                         self.status = format!("Action {ch} is unavailable.");
+                    }
+                }
+                KeyCode::Left | KeyCode::Up => {
+                    if self.nav_has_focus {
+                        self.cycle_action(ctx, -1);
+                        return Ok(room_mvp::EventFlow::Consumed);
+                    }
+                    if let Some(direction) =
+                        DirectionKey::from_key(if matches!(key_event.code, KeyCode::Left) {
+                            KeyCode::Left
+                        } else {
+                            KeyCode::Up
+                        })
+                    {
+                        self.move_to(direction);
+                    }
+                }
+                KeyCode::Right | KeyCode::Down => {
+                    if self.nav_has_focus {
+                        self.cycle_action(ctx, 1);
+                        return Ok(room_mvp::EventFlow::Consumed);
+                    }
+                    if let Some(direction) =
+                        DirectionKey::from_key(if matches!(key_event.code, KeyCode::Right) {
+                            KeyCode::Right
+                        } else {
+                            KeyCode::Down
+                        })
+                    {
+                        self.move_to(direction);
                     }
                 }
                 other => {
@@ -522,6 +623,35 @@ impl RoomPlugin for BoxyMudPlugin {
         }
 
         Ok(room_mvp::EventFlow::Continue)
+    }
+
+    fn on_focus_change(
+        &mut self,
+        ctx: &mut RuntimeContext<'_>,
+        change: &FocusChange,
+    ) -> Result<()> {
+        let to_nav = change
+            .to
+            .as_ref()
+            .map(|target| target.zone == NAV_ZONE)
+            .unwrap_or(false);
+        let from_nav = change
+            .from
+            .as_ref()
+            .map(|target| target.zone == NAV_ZONE)
+            .unwrap_or(false);
+
+        if to_nav {
+            self.status = "[Focus] Navigation actions ready".into();
+            self.apply_focus_change(ctx, true);
+        } else if from_nav {
+            self.status = "[Focus] Navigation released".into();
+            self.apply_focus_change(ctx, false);
+        }
+
+        self.update_all(ctx);
+
+        Ok(())
     }
 }
 

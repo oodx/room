@@ -74,10 +74,26 @@
 - Added troubleshooting notes to `docs/ref/workshops/workshop_boxy_dashboard_runtime.md` covering prompt behaviour and
   refresh tips.
 
+### [!] ROOM-615: Boxy dashboard lifecycle regression [2 pts]
+- `examples/boxy_dashboard_runtime` renders its first frame but never emits `UserReady`, so the CLI driver keeps input gated
+  and no `RuntimeEvent::Key`/`FocusChanged` reach the plugin.
+- Hypothesis: bootstrap/screen activation path fails to request a render (dirty zones never flushed). Trace
+  `ScreenManager::finish_activation` → `RoomRuntime::render_if_needed` to verify and restore the user-ready signal.
+
 ### [x] WORKSHOP-202: Boxy Grid Workshop [2 pts]
 - Introduced `examples/workshop_boxy_grid.rs` with multi-scenario grid walkthroughs.
 - Documented exercises in `docs/ref/workshops/workshop_boxy_grid.md`.
 - Acceptance met (example + guide) aligned with China’s grid workshop proposal.
+
+### Workshop Foundations (WKSP)
+- [ ] WKSP-00: Lifecycle contract smoke — guarantee `Open → Boot → Setup → render → UserReady` before user interaction; provide programmatic triggers for graceful exit, recoverable error, and fatal path so teardown ordering is verifiable.
+- [ ] WKSP-01: Bootstrap render baseline — default focus/cursor resolved, no blank first frame before `UserReady`.
+- [ ] WKSP-02: Event loop pacing — configurable tick interval, loop exits immediately on request, idle-friendly polling.
+- [ ] WKSP-03: Input plumbing — all key/paste/mouse surfaces flow through `RuntimeEvent`; Esc/q/Ctrl+C always exit.
+- [ ] WKSP-04: Focus/Cursor integration — `FocusController` emits `FocusChanged`, cursor hints reflect ownership, cursor visibility toggles correctly.
+- [ ] WKSP-05: Audit visibility — standardized bootstrap-friendly audit sink to observe lifecycle without custom wiring.
+- [ ] WKSP-06: Resource cleanup — demos restore terminal state via `Runtime::finalize()` and leave no orphaned PTYs/binaries.
+- [ ] WKSP-07: Scriptable harness — each workshop exposes a non-TTY harness to replay lifecycle/input scenarios for tests/UAT.
 
 ### [ ] WORKSHOP-301: First Paint Performance Workshop [2 pts]
 - Extend `examples/runtime_first_paint.rs` into a performance-focused tutorial covering audit hooks and first-render metrics.
@@ -201,6 +217,17 @@
 - Implement a structured error sink that emits `Error` events, coordinates recovery handlers, and escalates to `Fatal`, `FatalCleanup`, and `FatalClose` when necessary.
 - Wire audit stages and driver teardown to respect the fatal path while restoring terminal state safely.
 - Add regression tests covering recoverable errors and fatal shutdown flows.
+
+### [ ] ROOM-615: Test timeout sweep [2 pts]
+- Audit existing integration/unit tests that rely on the CLI driver and add `loop_iteration_limit` or port them to `run_scripted`/`SimulatedLoop` helpers.
+- Ensure every new lifecycle/lifecycle-adjacent test exits on its own (≤ 5s) so CI and local runs never hang.
+- Update harness docs/README snippets with the timeout guidance.
+
+### [~] ROOM-616: Debug REPL/daemon spike [3 pts]
+- Prototype a runtime controller that exposes pause/step/inject capabilities over a local socket or REPL.
+  * First pass (`cargo run --bin runtime_repl`) uses the lifecycle harness for manual inspection; next step is adding a socket control channel + richer UI.
+- Stream audit events + current frame so engineers can inspect the lifecycle interactively.
+- Document learnings and decide whether to graduate the spike into a supported debug tool.
 
 ---
 

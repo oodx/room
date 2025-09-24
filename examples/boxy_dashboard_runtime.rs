@@ -23,10 +23,12 @@ use boxy::{
     BoxColors, BoxyConfig, WidthConfig, height_plugin::get_max_safe_height, render_to_string,
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use room_mvp::runtime::audit::{BootstrapAudit, NullRuntimeAudit};
+use room_mvp::runtime::focus::{FocusController, ensure_focus_registry};
 use room_mvp::{
-    AnsiRenderer, CliDriver, Constraint, Direction, EventFlow, FocusController, LayoutError,
-    LayoutNode, LayoutTree, LegacyScreenStrategy, Result, RoomPlugin, RoomRuntime, RuntimeContext,
-    RuntimeEvent, ScreenDefinition, ScreenManager, SharedStateError, Size, ensure_focus_registry,
+    AnsiRenderer, CliDriver, Constraint, Direction, EventFlow, LayoutError, LayoutNode, LayoutTree,
+    LegacyScreenStrategy, Result, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext,
+    RuntimeEvent, ScreenDefinition, ScreenManager, SharedStateError, Size,
 };
 use rsb::visual::glyphs::{glyph, glyph_enable};
 
@@ -47,7 +49,13 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let layout = build_layout();
     let screen_layout = layout.clone();
     let renderer = AnsiRenderer::with_default();
-    let mut runtime = RoomRuntime::new(layout, renderer, Size::new(120, 34))?;
+
+    let mut config = RuntimeConfig::default();
+    config.audit = Some(BootstrapAudit::new(Arc::new(NullRuntimeAudit)));
+    config.default_focus_zone = Some(PROMPT_ZONE.to_string());
+    config.tick_interval = Duration::from_secs(2);
+
+    let mut runtime = RoomRuntime::with_config(layout, renderer, Size::new(120, 34), config)?;
 
     let mut screen_manager = ScreenManager::new();
     screen_manager.register_screen(ScreenDefinition::new(
@@ -58,8 +66,6 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     runtime.set_screen_manager(screen_manager);
     runtime.activate_screen("dashboard")?;
 
-    runtime.config_mut().default_focus_zone = Some(PROMPT_ZONE.to_string());
-    runtime.config_mut().tick_interval = Duration::from_secs(2);
     runtime.register_plugin(BoxyDashboardPlugin::new());
 
     CliDriver::new(runtime).run()?;
@@ -570,14 +576,8 @@ impl BoxyDashboardPlugin {
         }
     }
 
-    fn record_submission(&mut self, submission: &str) {
-        if let Some(activity_panel) = self
-            .panels
-            .iter_mut()
-            .find(|panel| panel.id() == PANEL_LOG_ZONE)
-        {
-            activity_panel.append_line(&format!("You: {}", submission), 10);
-        }
+    fn record_submission(&mut self, ctx: &mut RuntimeContext<'_>, submission: &str) {
+        self.log_activity(ctx, format!("You: {}", submission));
     }
 
     fn handle_prompt_key(
@@ -589,13 +589,13 @@ impl BoxyDashboardPlugin {
             KeyCode::Enter => {
                 if key.modifiers.contains(KeyModifiers::CONTROL) {
                     if let Some(submission) = self.prompt.take_submission() {
-                        self.record_submission(&submission);
+                        self.record_submission(ctx, &submission);
                     }
                     ctx.request_render();
                     return Ok(EventFlow::Consumed);
                 }
                 if let Some(submission) = self.prompt.current_submission() {
-                    self.record_submission(&submission);
+                    self.record_submission(ctx, &submission);
                     self.prompt.mark_dirty();
                 }
                 ctx.request_render();
@@ -651,6 +651,9 @@ impl BoxyDashboardPlugin {
                 Ok(EventFlow::Continue)
             }
             KeyCode::Char(ch) => {
+                if !matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) {
+                    return Ok(EventFlow::Continue);
+                }
                 if key
                     .modifiers
                     .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT)
@@ -688,9 +691,18 @@ impl BoxyDashboardPlugin {
     }
 
     fn handle_key(&mut self, ctx: &mut RuntimeContext<'_>, key: &KeyEvent) -> Result<EventFlow> {
-        if key.kind != KeyEventKind::Press {
-            return Ok(EventFlow::Continue);
+        match key.kind {
+            KeyEventKind::Press | KeyEventKind::Repeat => {}
+            _ => return Ok(EventFlow::Continue),
         }
+
+        self.log_activity(
+            ctx,
+            format!(
+                "Key event: {:?} mods {:?} kind {:?}",
+                key.code, key.modifiers, key.kind
+            ),
+        );
 
         match key.code {
             KeyCode::Tab => {
@@ -724,6 +736,17 @@ impl BoxyDashboardPlugin {
         }
     }
 
+    fn log_activity(&mut self, ctx: &mut RuntimeContext<'_>, line: impl Into<String>) {
+        if let Some(activity_panel) = self
+            .panels
+            .iter_mut()
+            .find(|panel| panel.id() == PANEL_LOG_ZONE)
+        {
+            activity_panel.append_line(&line.into(), 10);
+            ctx.request_render();
+        }
+    }
+
     fn force_refresh(&mut self) {
         for panel in &mut self.panels {
             panel.mark_dirty();
@@ -746,10 +769,16 @@ impl RoomPlugin for BoxyDashboardPlugin {
     }
 
     fn init(&mut self, ctx: &mut RuntimeContext<'_>) -> Result<()> {
+        self.focus = None;
         self.force_refresh();
         self.apply_focus(ctx, self.panels.len())?;
         self.render_dashboard(ctx);
         ctx.request_render();
+        Ok(())
+    }
+
+    fn on_user_ready(&mut self, ctx: &mut RuntimeContext<'_>) -> Result<()> {
+        self.log_activity(ctx, "[lifecycle] UserReady emitted");
         Ok(())
     }
 
@@ -758,6 +787,7 @@ impl RoomPlugin for BoxyDashboardPlugin {
         ctx: &mut RuntimeContext<'_>,
         event: &RuntimeEvent,
     ) -> Result<EventFlow> {
+        self.log_activity(ctx, format!("RuntimeEvent observed: {:?}", event));
         match event {
             RuntimeEvent::Key(key) => self.handle_key(ctx, key),
             RuntimeEvent::Resize(_) => {

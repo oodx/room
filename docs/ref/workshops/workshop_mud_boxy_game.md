@@ -44,6 +44,9 @@ cargo run --example mud_boxy_game
   plugins once multi-plugin coordination patterns solidify.
 - We rely on fixed `WidthConfig::fixed_width` values — future polish should derive width/height from the solved rects to
   better handle terminal resizing.
+- The navigation panel now participates in focus + cursor lifecycle events. When the bar owns focus, `set_cursor_in_zone`
+  keeps the caret aligned with the highlighted action, demonstrating how to combine Boxy renders with runtime cursor
+  hints.
 
 ## TODO / Known Gaps
 
