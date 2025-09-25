@@ -160,7 +160,7 @@ impl RoomSeed {
 const ROOM_SEEDS: &[RoomSeed] = &[
     RoomSeed::new(
         "atrium",
-        "Sunlit Atrium",
+        "Atrium",
         "Sunlight streams through fractured glass, scattering prisms across the marble floor.",
         (0, 0),
         &[
@@ -172,7 +172,7 @@ const ROOM_SEEDS: &[RoomSeed] = &[
     ),
     RoomSeed::new(
         "observatory",
-        "Celestial Observatory",
+        "Observatory",
         "Bronze telescopes aim toward painted constellations that shimmer unnaturally.",
         (0, 1),
         &[
@@ -183,7 +183,7 @@ const ROOM_SEEDS: &[RoomSeed] = &[
     ),
     RoomSeed::new(
         "gallery",
-        "Crystal Gallery",
+        "Gallery",
         "Portraits watch with gemstone eyes while glass sculptures hum with resonant tones.",
         (1, 0),
         &[
@@ -195,7 +195,7 @@ const ROOM_SEEDS: &[RoomSeed] = &[
     ),
     RoomSeed::new(
         "garden",
-        "Echoing Garden",
+        "Garden",
         "Iridescent plants bloom in slow motion around reflecting pools that ripple backwards.",
         (2, 0),
         &[
@@ -206,7 +206,7 @@ const ROOM_SEEDS: &[RoomSeed] = &[
     ),
     RoomSeed::new(
         "scriptorium",
-        "Silent Scriptorium",
+        "Scriptorium",
         "Ink quills float over parchment, writing forgotten alphabets as candles never burn down.",
         (0, -1),
         &[
@@ -217,7 +217,7 @@ const ROOM_SEEDS: &[RoomSeed] = &[
     ),
     RoomSeed::new(
         "vault",
-        "Prismatic Vault",
+        "Vault",
         "Segmented vault doors lie ajar, releasing a soft hum that vibrates through your bones.",
         (1, -1),
         &[
@@ -229,7 +229,7 @@ const ROOM_SEEDS: &[RoomSeed] = &[
     ),
     RoomSeed::new(
         "workshop",
-        "Arcane Workshop",
+        "Workshop",
         "Tools orbit workbenches, forged from alloys that seem to phase in and out of reality.",
         (1, 1),
         &[
@@ -284,7 +284,7 @@ impl BoxyMudPlugin {
             positions,
             current_room: "atrium".to_string(),
             inventory: Vec::new(),
-            status: String::from("You arrive in the Sunlit Atrium."),
+            status: String::from("You arrive in the Atrium."),
             action_hint: String::from("Use Tab to focus navigation, arrows to move between rooms"),
             selected_action: 0,
             nav_has_focus: false,  // Start in room exploration mode
