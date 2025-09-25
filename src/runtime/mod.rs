@@ -776,10 +776,29 @@ impl RoomRuntime {
     }
 
     pub fn run(&mut self, stdout: &mut impl Write) -> Result<()> {
+        // Branch early: if simulated_loop is configured, use bounded execution
+        if let Some(sim_config) = self.config.simulated_loop {
+            return self.run_simulated_internal(stdout, sim_config);
+        }
+
         self.bootstrap(stdout)?;
         let mut last_tick = Instant::now();
+        let mut loop_iterations = 0;
 
         while !self.should_exit {
+            // Check loop iteration limit for safety guard
+            if let Some(limit) = self.config.loop_iteration_limit {
+                if loop_iterations >= limit {
+                    self.audit_record(RuntimeAuditStage::LoopGuardTriggered, []);
+                    self.log_lifecycle_stage("loop_guard_triggered");
+                    self.audit_record(RuntimeAuditStage::LoopAborted, []);
+                    self.log_lifecycle_stage("loop_aborted");
+                    self.should_exit = true;
+                    break;
+                }
+            }
+            loop_iterations += 1;
+
             let timeout = self
                 .config
                 .tick_interval
@@ -811,12 +830,77 @@ impl RoomRuntime {
         self.finalize()
     }
 
+    /// Internal helper for simulated loop execution - performs bootstrap + bounded for-loop
+    fn run_simulated_internal(&mut self, stdout: &mut impl Write, sim_config: SimulatedLoop) -> Result<()> {
+        self.bootstrap(stdout)?;
+        let mut last_tick = Instant::now();
+
+        // Emit audit stage at start of bounded run
+        self.audit_record(RuntimeAuditStage::LoopSimulated, []);
+
+        for _iteration in 0..sim_config.max_iterations {
+            if self.should_exit {
+                break;
+            }
+
+            // Optionally emit synthetic tick events
+            if sim_config.dispatch_ticks {
+                let now = Instant::now();
+                let elapsed = now.duration_since(last_tick);
+                last_tick = now;
+                self.dispatch_event(RuntimeEvent::Tick { elapsed })?;
+                self.audit_record(RuntimeAuditStage::TickDispatched, []);
+            }
+
+            // Apply pending renders
+            self.render_if_needed(stdout)?;
+
+            // Check if we should exit early
+            if self.should_exit {
+                break;
+            }
+        }
+
+        // Emit appropriate completion stage based on exit reason
+        if self.fatal_active {
+            self.audit_record(RuntimeAuditStage::LoopSimulatedAborted, []);
+            self.log_lifecycle_stage("loop_simulated_aborted");
+        } else {
+            self.audit_record(RuntimeAuditStage::LoopSimulatedComplete, []);
+            self.log_lifecycle_stage("loop_simulated_complete");
+        }
+
+        self.finalize()
+    }
+
+    /// Convenience wrapper for running simulated execution - unwraps config option
+    pub fn run_simulated(&mut self, stdout: &mut impl Write) -> Result<()> {
+        match self.config.simulated_loop {
+            Some(sim_config) => self.run_simulated_internal(stdout, sim_config),
+            None => Err(LayoutError::Backend("No simulated_loop configuration found".to_string())),
+        }
+    }
+
     pub fn run_scripted<I>(&mut self, stdout: &mut impl Write, events: I) -> Result<()>
     where
         I: IntoIterator<Item = RuntimeEvent>,
     {
         self.bootstrap(stdout)?;
+        let mut loop_iterations = 0;
+
         for event in events.into_iter() {
+            // Check loop iteration limit for safety guard
+            if let Some(limit) = self.config.loop_iteration_limit {
+                if loop_iterations >= limit {
+                    self.audit_record(RuntimeAuditStage::LoopGuardTriggered, []);
+                    self.log_lifecycle_stage("loop_guard_triggered");
+                    self.audit_record(RuntimeAuditStage::LoopAborted, []);
+                    self.log_lifecycle_stage("loop_aborted");
+                    self.should_exit = true;
+                    break;
+                }
+            }
+            loop_iterations += 1;
             let event = match event {
                 RuntimeEvent::Resize(size) => {
                     self.handle_resize(size)?;
