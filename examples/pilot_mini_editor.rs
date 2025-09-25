@@ -304,10 +304,23 @@ impl EditorState {
         // No viewport update needed since cursor doesn't move
     }
 
-    fn clear_line(&mut self) {
-        // Ctrl+K: Clear the current line content but keep the line (nano-style)
-        self.lines[self.cursor_row].clear();
-        self.cursor_col = 0; // Move cursor to beginning of now-empty line
+    fn delete_line(&mut self) {
+        // Ctrl+K: Delete the entire line (remove it completely)
+        if self.lines.len() > 1 {
+            // Remove the line completely if there are other lines
+            self.lines.remove(self.cursor_row);
+
+            // Adjust cursor position
+            if self.cursor_row >= self.lines.len() {
+                self.cursor_row = self.lines.len() - 1;
+            }
+            self.cursor_col = 0; // Move to beginning of line
+        } else {
+            // If this is the only line, just clear its content
+            self.lines[0].clear();
+            self.cursor_col = 0;
+        }
+
         self.version += 1;
         self.update_viewport_to_follow_cursor();
     }
@@ -479,7 +492,7 @@ impl EditorState {
         // Add status bar at the bottom
         content_lines.push(String::new()); // Empty line
         content_lines.push(format!(
-            "──[ Line {}, Col {} | {} lines | v{} | Ctrl+K: clear line ]──",
+            "──[ Line {}, Col {} | {} lines | v{} | Ctrl+K: delete line ]──",
             self.cursor_row + 1,
             self.cursor_display_column() + 1,
             self.lines.len(),
@@ -614,9 +627,9 @@ impl RoomPlugin for EditorCorePlugin {
                         return Ok(EventFlow::Consumed);
                     }
                     KeyCode::Char('k') => {
-                        // Ctrl+K: Clear the current line (nano-style)
+                        // Ctrl+K: Delete the entire line
                         if let Ok(mut state) = self.state.lock() {
-                            state.clear_line();
+                            state.delete_line();
                             drop(state);
 
                             // Update editor after clearing line
