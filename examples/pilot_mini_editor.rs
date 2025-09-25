@@ -119,25 +119,36 @@ struct EditorState {
     cursor_row: usize,
     cursor_col: usize,
     version: u64, // For tracking changes
+    viewport_top: usize, // Top visible line for scrolling
 }
 
 impl EditorState {
     fn new() -> Self {
         Self {
-            lines: vec![
-                "Welcome to Room Mini Editor!".to_string(),
-                "".to_string(),
-                "This demonstrates Room's zone-based architecture:".to_string(),
-                "• Line numbers update independently".to_string(),
-                "• Content zone handles text rendering".to_string(),
-                "• Status bar shows editor state".to_string(),
-                "".to_string(),
-                "Type to edit, arrow keys to navigate, Ctrl+Q to quit.".to_string(),
-                "".to_string(),
-            ],
+            lines: {
+                let mut lines = vec![
+                    "Welcome to Room Mini Editor!".to_string(),
+                    "".to_string(),
+                    "This demonstrates Room's zone-based architecture:".to_string(),
+                    "• Line numbers update independently".to_string(),
+                    "• Content zone handles text rendering".to_string(),
+                    "• Status bar shows editor state".to_string(),
+                    "".to_string(),
+                    "Type to edit, arrows/PgUp/PgDn/Home/End to navigate, Ctrl+Q to quit.".to_string(),
+                    "".to_string(),
+                ];
+
+                // Add more lines to test scrolling
+                for i in 10..=50 {
+                    lines.push(format!("Line {} - This is a test line to demonstrate viewport scrolling functionality.", i));
+                }
+
+                lines
+            },
             cursor_row: 0, // Start at line 1 (0-indexed)
             cursor_col: 0,
             version: 0,
+            viewport_top: 0,
         }
     }
 
@@ -194,8 +205,55 @@ impl EditorState {
                     self.cursor_col = 0;
                 }
             }
+            CursorDirection::PageUp => {
+                const PAGE_SIZE: usize = 20; // Move by ~page size
+                if self.cursor_row >= PAGE_SIZE {
+                    self.cursor_row -= PAGE_SIZE;
+                } else {
+                    self.cursor_row = 0;
+                }
+                // Keep cursor within line bounds
+                let max_col = self.line_char_count(self.cursor_row);
+                self.cursor_col = self.cursor_col.min(max_col);
+            }
+            CursorDirection::PageDown => {
+                const PAGE_SIZE: usize = 20; // Move by ~page size
+                if self.cursor_row + PAGE_SIZE < self.lines.len() {
+                    self.cursor_row += PAGE_SIZE;
+                } else {
+                    self.cursor_row = self.lines.len() - 1;
+                }
+                // Keep cursor within line bounds
+                let max_col = self.line_char_count(self.cursor_row);
+                self.cursor_col = self.cursor_col.min(max_col);
+            }
+            CursorDirection::Home => {
+                self.cursor_col = 0; // Move to start of current line
+            }
+            CursorDirection::End => {
+                self.cursor_col = self.line_char_count(self.cursor_row); // Move to end of current line
+            }
         }
         self.version += 1;
+        // Update viewport to keep cursor visible
+        self.update_viewport_to_follow_cursor();
+    }
+
+    /// Update viewport to keep cursor visible
+    fn update_viewport_to_follow_cursor(&mut self) {
+        const VIEWPORT_HEIGHT: usize = 25; // Approximate visible lines (30 total - status - line numbers)
+
+        // Scroll up if cursor is above viewport
+        if self.cursor_row < self.viewport_top {
+            self.viewport_top = self.cursor_row;
+        }
+        // Scroll down if cursor is below viewport
+        else if self.cursor_row >= self.viewport_top + VIEWPORT_HEIGHT {
+            self.viewport_top = self.cursor_row - VIEWPORT_HEIGHT + 1;
+        }
+
+        // Ensure viewport_top doesn't go below 0 or beyond document
+        self.viewport_top = self.viewport_top.min(self.lines.len().saturating_sub(VIEWPORT_HEIGHT));
     }
 
     fn insert_char(&mut self, ch: char) {
@@ -204,6 +262,7 @@ impl EditorState {
         line.insert(byte_idx, ch);
         self.cursor_col += 1;
         self.version += 1;
+        self.update_viewport_to_follow_cursor();
     }
 
     fn insert_newline(&mut self) {
@@ -217,6 +276,7 @@ impl EditorState {
         self.cursor_row += 1;
         self.cursor_col = 0;
         self.version += 1;
+        self.update_viewport_to_follow_cursor();
     }
 
     fn delete_char(&mut self) {
@@ -237,20 +297,29 @@ impl EditorState {
         }
     }
 
-    /// Calculate cursor position relative to content zone
+    /// Calculate cursor position relative to content zone (viewport)
     fn cursor_position(&self) -> (u16, u16) {
-        (self.cursor_row as u16, self.cursor_display_column() as u16)
+        let viewport_row = self.cursor_row.saturating_sub(self.viewport_top);
+        (viewport_row as u16, self.cursor_display_column() as u16)
     }
 
     /// Produce display content with an ANSI-highlighted caret that preserves cell width.
     fn render_content_with_highlight(&self) -> String {
+        const VIEWPORT_HEIGHT: usize = 25;
         let mut buffer = String::new();
-        for (idx, line) in self.lines.iter().enumerate() {
-            if idx > 0 {
+
+        // Only render visible viewport slice
+        let viewport_end = (self.viewport_top + VIEWPORT_HEIGHT).min(self.lines.len());
+        let visible_lines = &self.lines[self.viewport_top..viewport_end];
+
+        for (viewport_idx, line) in visible_lines.iter().enumerate() {
+            let actual_line_idx = self.viewport_top + viewport_idx;
+
+            if viewport_idx > 0 {
                 buffer.push('\n');
             }
 
-            if idx == self.cursor_row {
+            if actual_line_idx == self.cursor_row {
                 let byte_idx = Self::byte_offset(line, self.cursor_col);
                 let (left, right) = line.split_at(byte_idx);
                 buffer.push_str(left);
@@ -274,7 +343,11 @@ impl EditorState {
 
     /// Generate line numbers - demonstrates independent zone updates
     fn render_line_numbers(&self) -> String {
-        (1..=self.lines.len())
+        const VIEWPORT_HEIGHT: usize = 25;
+        let viewport_end = (self.viewport_top + VIEWPORT_HEIGHT).min(self.lines.len());
+
+        // Show line numbers only for visible viewport
+        (self.viewport_top + 1..=viewport_end)
             .map(|n| format!("{:>4} ", n))
             .collect::<Vec<_>>()
             .join("\n")
@@ -299,6 +372,10 @@ enum CursorDirection {
     Down,
     Left,
     Right,
+    PageUp,
+    PageDown,
+    Home,
+    End,
 }
 
 /// Core editor plugin - demonstrates Room's plugin architecture
@@ -390,6 +467,10 @@ impl RoomPlugin for EditorCorePlugin {
                     KeyCode::Down => state.move_cursor(CursorDirection::Down),
                     KeyCode::Left => state.move_cursor(CursorDirection::Left),
                     KeyCode::Right => state.move_cursor(CursorDirection::Right),
+                    KeyCode::PageUp => state.move_cursor(CursorDirection::PageUp),
+                    KeyCode::PageDown => state.move_cursor(CursorDirection::PageDown),
+                    KeyCode::Home => state.move_cursor(CursorDirection::Home),
+                    KeyCode::End => state.move_cursor(CursorDirection::End),
 
                     // Text input - Room's character processing
                     KeyCode::Char(ch) => state.insert_char(ch),
