@@ -31,10 +31,9 @@ use room_mvp::{
     RuntimeEvent, ScreenDefinition, ScreenManager, Size, SimulatedLoop, display_width,
 };
 
-// Editor zone definitions - showcase Room's zone-based architecture
+// Editor zone definitions - separate zones for line numbers and content
 const LINE_NUMBERS_ZONE: &str = "editor:line_numbers";
 const CONTENT_ZONE: &str = "editor:content";
-const STATUS_ZONE: &str = "editor:status";
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     println!("Room Pilot · Mini Text Editor");
@@ -53,7 +52,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
 
     let mut runtime =
-        RoomRuntime::with_config(layout.clone(), renderer, Size::new(110, 35), config)?;
+        RoomRuntime::with_config(layout.clone(), renderer, Size::new(100, 40), config)?;
 
     // Set up screen manager - REQUIRED for proper zone initialization
     let mut screen_manager = ScreenManager::new();
@@ -86,29 +85,17 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-/// Novel Room layout: demonstrates multi-zone editor architecture
+/// Two-zone layout - line numbers Boxy on left, content Boxy on right
 fn build_editor_layout() -> LayoutTree {
     LayoutTree::new(LayoutNode {
         id: "editor:root".into(),
         direction: Direction::Row,
-        constraints: vec![Constraint::Fixed(6), Constraint::Flex(1)],
+        constraints: vec![Constraint::Fixed(10), Constraint::Flex(1)], // Line numbers + main content
         children: vec![
-            // Line numbers zone - fixed width
             LayoutNode::leaf(LINE_NUMBERS_ZONE),
-            // Main editor area - flexible column
-            LayoutNode {
-                id: "editor:main".into(),
-                direction: Direction::Column,
-                constraints: vec![Constraint::Flex(1), Constraint::Fixed(1)],
-                children: vec![
-                    LayoutNode::leaf(CONTENT_ZONE),
-                    LayoutNode::leaf(STATUS_ZONE),
-                ],
-                gap: 0,
-                padding: 0,
-            },
+            LayoutNode::leaf(CONTENT_ZONE),
         ],
-        gap: 0,
+        gap: 1,
         padding: 0,
     })
 }
@@ -242,7 +229,7 @@ impl EditorState {
 
     /// Update viewport to keep cursor visible
     fn update_viewport_to_follow_cursor(&mut self) {
-        const VIEWPORT_HEIGHT: usize = 25; // Approximate visible lines (30 total - status - line numbers)
+        const VIEWPORT_HEIGHT: usize = 28; // Adjust for single-zone layout with Boxy borders
 
         // Scroll up if cursor is above viewport
         if self.cursor_row < self.viewport_top {
@@ -298,67 +285,129 @@ impl EditorState {
         }
     }
 
+    fn delete_char_forward(&mut self) {
+        let line_len = self.line_char_count(self.cursor_row);
+
+        if self.cursor_col < line_len {
+            // Delete character at cursor position (forward delete)
+            let line = &mut self.lines[self.cursor_row];
+            let start = Self::byte_offset(line, self.cursor_col);
+            let end = Self::byte_offset(line, self.cursor_col + 1);
+            line.replace_range(start..end, "");
+            self.version += 1;
+        } else if self.cursor_row < self.lines.len() - 1 {
+            // At end of line, merge with next line
+            let next_line = self.lines.remove(self.cursor_row + 1);
+            self.lines[self.cursor_row].push_str(&next_line);
+            self.version += 1;
+        }
+        // No viewport update needed since cursor doesn't move
+    }
+
+    fn clear_line(&mut self) {
+        // Ctrl+K: Clear the current line content but keep the line (nano-style)
+        self.lines[self.cursor_row].clear();
+        self.cursor_col = 0; // Move cursor to beginning of now-empty line
+        self.version += 1;
+        self.update_viewport_to_follow_cursor();
+    }
+
     /// Calculate cursor position relative to content zone (viewport)
     fn cursor_position(&self) -> (u16, u16) {
         let viewport_row = self.cursor_row.saturating_sub(self.viewport_top);
         (viewport_row as u16, self.cursor_display_column() as u16)
     }
 
-    /// Produce display content with an ANSI-highlighted caret that preserves cell width.
-    fn render_content_with_highlight(&self) -> String {
-        const VIEWPORT_HEIGHT: usize = 25;
-        let mut buffer = String::new();
+    /// Wrap text like nano - break long lines at terminal width
+    fn wrap_line_nano_style(&self, line: &str, max_width: usize) -> Vec<String> {
+        if line.is_empty() {
+            return vec![String::new()];
+        }
 
-        // Only render visible viewport slice
-        let viewport_end = (self.viewport_top + VIEWPORT_HEIGHT).min(self.lines.len());
-        let visible_lines = &self.lines[self.viewport_top..viewport_end];
+        let mut wrapped = Vec::new();
+        let mut current_line = String::new();
+        let mut current_width = 0;
 
-        for (viewport_idx, line) in visible_lines.iter().enumerate() {
-            let actual_line_idx = self.viewport_top + viewport_idx;
+        for ch in line.chars() {
+            let char_width = if ch == '\t' {
+                8 - (current_width % 8) // Tab stops at 8-char boundaries
+            } else {
+                display_width(&ch.to_string()) as usize
+            };
 
-            if viewport_idx > 0 {
-                buffer.push('\n');
+            if current_width + char_width > max_width && !current_line.is_empty() {
+                wrapped.push(current_line);
+                current_line = String::new();
+                current_width = 0;
             }
 
-            if actual_line_idx == self.cursor_row {
-                let byte_idx = Self::byte_offset(line, self.cursor_col);
-                let (left, right) = line.split_at(byte_idx);
-                buffer.push_str(left);
-
-                // Highlight the glyph under the caret using reverse video.
-                buffer.push_str("\x1b[7m");
-                if let Some(ch) = right.chars().next() {
-                    buffer.push(ch);
-                    buffer.push_str("\x1b[0m");
-                    buffer.push_str(&right[ch.len_utf8()..]);
-                } else {
-                    buffer.push(' ');
-                    buffer.push_str("\x1b[0m");
-                }
+            if ch == '\t' {
+                // Convert tab to spaces for display
+                let spaces = 8 - (current_width % 8);
+                current_line.push_str(&" ".repeat(spaces));
+                current_width += spaces;
             } else {
-                buffer.push_str(line);
+                current_line.push(ch);
+                current_width += char_width;
             }
         }
-        buffer
+
+        if !current_line.is_empty() || wrapped.is_empty() {
+            wrapped.push(current_line);
+        }
+
+        wrapped
     }
 
-    /// Render content wrapped in a pretty Boxy panel
-    fn render_content_with_boxy(&self) -> String {
-        let content = self.render_content_with_highlight();
+    /// Truncate line to show the end when it's too long (like nano)
+    fn truncate_line_buffer(&self, line: &str, available_width: usize, cursor_col: usize) -> String {
+        let chars: Vec<char> = line.chars().collect();
+
+        if chars.len() <= available_width {
+            // Line fits, no truncation needed
+            return line.to_string();
+        }
+
+        // Line is too long, show the end portion that includes the cursor
+        let start_pos = if cursor_col >= available_width {
+            // Cursor is beyond visible area, show end of line up to cursor
+            cursor_col.saturating_sub(available_width) + 1
+        } else {
+            // Show from beginning until we have available_width chars
+            0
+        }.min(chars.len().saturating_sub(available_width));
+
+        chars.iter().skip(start_pos).take(available_width).collect()
+    }
+
+    /// Render line numbers in their own Boxy (same height as content)
+    fn render_line_numbers_boxy(&self) -> String {
+        const VIEWPORT_HEIGHT: usize = 30;
+        let viewport_end = (self.viewport_top + VIEWPORT_HEIGHT).min(self.lines.len());
+
+        let mut line_numbers = (self.viewport_top + 1..=viewport_end)
+            .map(|n| format!("{:>4}", n))
+            .collect::<Vec<_>>();
+
+        // Pad with empty lines to match content height (including status bar space)
+        let content_lines = viewport_end - self.viewport_top + 2; // +2 for empty line + status
+        while line_numbers.len() < content_lines {
+            line_numbers.push("    ".to_string());
+        }
 
         let config = BoxyConfig {
-            text: content,
-            title: Some("Text Editor".to_string()),
+            text: line_numbers.join("\n"),
+            title: Some("#".to_string()),
             colors: BoxColors {
-                box_color: "blue".to_string(),
-                text_color: "auto".to_string(),
-                title_color: Some("cyan".to_string()),
-                header_color: Some("bright_blue".to_string()),
+                box_color: "gray".to_string(),
+                text_color: "white".to_string(),
+                title_color: Some("gray".to_string()),
+                header_color: Some("white".to_string()),
                 footer_color: None,
                 status_color: None,
             },
             width: WidthConfig {
-                fixed_width: None,
+                fixed_width: Some(8),
                 enable_wrapping: false,
                 ..WidthConfig::default()
             },
@@ -369,29 +418,97 @@ impl EditorState {
         render_to_string(&config)
     }
 
-    /// Generate line numbers - demonstrates independent zone updates
-    fn render_line_numbers(&self) -> String {
-        const VIEWPORT_HEIGHT: usize = 25;
+    /// Render content in fixed-width Boxy with line buffer truncation
+    fn render_content_boxy(&self) -> String {
+        const VIEWPORT_HEIGHT: usize = 30;
+        const CONTENT_WIDTH: usize = 80; // Fixed width for content
+
         let viewport_end = (self.viewport_top + VIEWPORT_HEIGHT).min(self.lines.len());
+        let visible_lines = &self.lines[self.viewport_top..viewport_end];
 
-        // Show line numbers only for visible viewport
-        (self.viewport_top + 1..=viewport_end)
-            .map(|n| format!("{:>4} ", n))
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
+        let mut content_lines = Vec::new();
 
-    /// Generate status line - shows Room's real-time updates
-    fn render_status(&self) -> String {
-        let display_col = self.cursor_display_column();
-        format!(
-            "──[ Line {}, Col {} | {} lines | v{} | Ctrl+Q to quit ]──",
+        for (viewport_idx, line) in visible_lines.iter().enumerate() {
+            let actual_line_idx = self.viewport_top + viewport_idx;
+
+            // Truncate line to fit in fixed width, showing end if cursor is there
+            let cursor_col = if actual_line_idx == self.cursor_row {
+                self.cursor_col
+            } else {
+                0
+            };
+
+            let truncated_line = self.truncate_line_buffer(line, CONTENT_WIDTH, cursor_col);
+
+            // Apply cursor highlighting if this is the cursor line
+            if actual_line_idx == self.cursor_row {
+                let chars: Vec<char> = truncated_line.chars().collect();
+                let mut highlighted_line = String::new();
+
+                // Determine cursor position in truncated view
+                // We need to account for the start position of truncation
+                let line_chars: Vec<char> = line.chars().collect();
+                let truncate_start = if line_chars.len() > CONTENT_WIDTH && self.cursor_col >= CONTENT_WIDTH {
+                    self.cursor_col.saturating_sub(CONTENT_WIDTH) + 1
+                } else {
+                    0
+                }.min(line_chars.len().saturating_sub(CONTENT_WIDTH));
+
+                let cursor_in_truncated = self.cursor_col.saturating_sub(truncate_start);
+
+                // Build highlighted line
+                for (i, &ch) in chars.iter().enumerate() {
+                    if i == cursor_in_truncated {
+                        highlighted_line.push_str(&format!("\x1b[7m{}\x1b[0m", ch));
+                    } else {
+                        highlighted_line.push(ch);
+                    }
+                }
+
+                // Add cursor at end if it's beyond the truncated content
+                if cursor_in_truncated >= chars.len() {
+                    highlighted_line.push_str("\x1b[7m \x1b[0m");
+                }
+
+                content_lines.push(highlighted_line);
+            } else {
+                content_lines.push(truncated_line);
+            }
+        }
+
+        // Add status bar at the bottom
+        content_lines.push(String::new()); // Empty line
+        content_lines.push(format!(
+            "──[ Line {}, Col {} | {} lines | v{} | Ctrl+K: clear line ]──",
             self.cursor_row + 1,
-            display_col + 1,
+            self.cursor_display_column() + 1,
             self.lines.len(),
             self.version
-        )
+        ));
+
+        let config = BoxyConfig {
+            text: content_lines.join("\n"),
+            title: Some("Room Mini Text Editor".to_string()),
+            colors: BoxColors {
+                box_color: "blue".to_string(),
+                text_color: "white".to_string(),
+                title_color: Some("cyan".to_string()),
+                header_color: Some("bright_blue".to_string()),
+                footer_color: None,
+                status_color: None,
+            },
+            width: WidthConfig {
+                fixed_width: Some(CONTENT_WIDTH + 4), // +4 for borders
+                enable_wrapping: false,
+                ..WidthConfig::default()
+            },
+            fixed_height: None,
+            ..Default::default()
+        };
+
+        render_to_string(&config)
     }
+
 }
 
 #[derive(Debug, Clone)]
@@ -418,32 +535,26 @@ impl EditorCorePlugin {
         }
     }
 
-    /// Update all editor zones - showcases Room's zone coordination
-    fn update_all_zones(&self, ctx: &mut RuntimeContext) {
+    /// Update both editor zones - line numbers and content
+    fn update_editor_zones(&self, ctx: &mut RuntimeContext) {
         if let Ok(state) = self.state.lock() {
-            // Update line numbers zone
-            ctx.set_zone(LINE_NUMBERS_ZONE, state.render_line_numbers());
-
-            // Update content using Boxy with ANSI highlighting
-            ctx.set_zone_pre_rendered(CONTENT_ZONE, state.render_content_with_boxy());
-
-            // Update status zone text
-            ctx.set_zone(STATUS_ZONE, state.render_status());
-
-            // Don't request render here - let the caller decide when to render
+            // Render line numbers in their own Boxy
+            ctx.set_zone_pre_rendered(LINE_NUMBERS_ZONE, state.render_line_numbers_boxy());
+            // Render content in fixed-width Boxy with truncation
+            ctx.set_zone_pre_rendered(CONTENT_ZONE, state.render_content_boxy());
         }
     }
 
-    /// Set cursor position after content is rendered (accounting for Boxy borders)
+    /// Set cursor position after content is rendered (accounting for content Boxy borders)
     fn update_cursor_position(&self, ctx: &mut RuntimeContext) {
         if let Ok(state) = self.state.lock() {
             // Get the content zone rect to calculate absolute screen coordinates
             if let Some(content_rect) = ctx.rect(CONTENT_ZONE) {
                 let (cursor_row, cursor_col) = state.cursor_position();
 
-                // Account for Boxy panel borders and title:
+                // Account for content Boxy panel borders and title:
                 // - Top border + title takes 2 lines
-                // - Left border takes 1 column
+                // - Left border takes 2 columns (border + padding)
                 let boxy_row_offset = 2u16; // Top border + title
                 let boxy_col_offset = 2u16; // Left border + padding
 
@@ -483,7 +594,7 @@ impl RoomPlugin for EditorCorePlugin {
 
     fn on_user_ready(&mut self, ctx: &mut RuntimeContext) -> Result<()> {
         // Initial zone population after runtime is ready
-        self.update_all_zones(ctx);
+        self.update_editor_zones(ctx);
         // Set cursor position after content is rendered
         self.update_cursor_position(ctx);
         Ok(())
@@ -495,12 +606,28 @@ impl RoomPlugin for EditorCorePlugin {
                 return Ok(EventFlow::Continue);
             }
 
-            // Handle quit command
-            if key_event.modifiers.contains(KeyModifiers::CONTROL)
-                && key_event.code == KeyCode::Char('q')
-            {
-                ctx.request_exit();
-                return Ok(EventFlow::Consumed);
+            // Handle control commands
+            if key_event.modifiers.contains(KeyModifiers::CONTROL) {
+                match key_event.code {
+                    KeyCode::Char('q') => {
+                        ctx.request_exit();
+                        return Ok(EventFlow::Consumed);
+                    }
+                    KeyCode::Char('k') => {
+                        // Ctrl+K: Clear the current line (nano-style)
+                        if let Ok(mut state) = self.state.lock() {
+                            state.clear_line();
+                            drop(state);
+
+                            // Update editor after clearing line
+                            self.update_editor_zones(ctx);
+                            self.update_cursor_position(ctx);
+                            ctx.request_render();
+                            return Ok(EventFlow::Consumed);
+                        }
+                    }
+                    _ => return Ok(EventFlow::Continue),
+                }
             }
 
             if let Ok(mut state) = self.state.lock() {
@@ -519,6 +646,7 @@ impl RoomPlugin for EditorCorePlugin {
                     KeyCode::Char(ch) => state.insert_char(ch),
                     KeyCode::Enter => state.insert_newline(),
                     KeyCode::Backspace => state.delete_char(),
+                    KeyCode::Delete => state.delete_char_forward(),
 
                     _ => return Ok(EventFlow::Continue),
                 }
@@ -526,10 +654,10 @@ impl RoomPlugin for EditorCorePlugin {
                 // Drop the lock before calling update
                 drop(state);
 
-                // Update zones after state change - Room's reactive pattern
-                self.update_all_zones(ctx);
+                // Update editor after state change - Room's reactive pattern
+                self.update_editor_zones(ctx);
                 self.update_cursor_position(ctx);
-                ctx.request_render(); // Request render after all zones updated
+                ctx.request_render(); // Request render after editor updated
                 return Ok(EventFlow::Consumed);
             }
         }
