@@ -225,6 +225,7 @@
 - Added proper audit stage emissions: `LoopSimulated` → `LoopSimulatedComplete`/`LoopSimulatedAborted` based on `fatal_active`.
 - Emit `LoopGuardTriggered` + `LoopAborted` pair when iteration limits are reached.
 - Updated `workshop_lifecycle_trace_01.rs` to use `SimulatedLoop::ticks(6)` - now runs headlessly without TTY access.
+- DOCUMENTED: Created comprehensive `docs/SIMULATED_LOOP.md` with usage patterns, examples, and troubleshooting guide.
 
 ### [ ] ROOM-615: Test timeout sweep [2 pts]
 - Audit existing integration/unit tests that rely on the CLI driver and add `loop_iteration_limit` or port them to `run_scripted`/`SimulatedLoop` helpers.
