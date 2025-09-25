@@ -11,13 +11,37 @@ const COLORS: &[&str] = &["red", "green", "blue", "yellow", "cyan", "magenta"];
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     println!("Testing Boxy Grid - Colored 1-char panels");
 
-    // Calculate grid based on terminal size
+    // First, check actual Boxy dimensions
+    let test_config = BoxyConfig {
+        text: "A".to_string(),
+        colors: BoxColors {
+            box_color: "red".to_string(),
+            text_color: "white".to_string(),
+            ..BoxColors::default()
+        },
+        ..BoxyConfig::default()
+    };
+
+    let test_render = render_to_string(&test_config);
+    let lines: Vec<&str> = test_render.lines().collect();
+
+    // Calculate visual width (strip ANSI codes for width calculation)
+    let visual_width = if !lines.is_empty() {
+        let clean_bytes = strip_ansi_escapes::strip(lines[0].as_bytes());
+        String::from_utf8_lossy(&clean_bytes).chars().count()
+    } else {
+        5 // fallback: ┌───┐
+    };
+    let box_height = lines.len();
+
+    println!("Actual Boxy visual size: {}x{}", visual_width, box_height);
+
+    // Calculate grid based on terminal size and visual dimensions
     let term_width = 80;  // Standard terminal width
     let term_height = 24; // Standard terminal height
 
-    // Each boxy is 3x3, calculate how many fit
-    let cols = term_width / 3;
-    let rows = term_height / 3;
+    let cols = term_width / visual_width;
+    let rows = term_height / box_height;
 
     println!("Terminal: {}x{}, Grid: {}x{} boxes", term_width, term_height, cols, rows);
 
@@ -113,5 +137,30 @@ impl RoomPlugin for BoxyGridPlugin {
             }
         }
         Ok(())
+    }
+
+    fn on_event(
+        &mut self,
+        ctx: &mut RuntimeContext,
+        event: &room_mvp::RuntimeEvent,
+    ) -> room_mvp::Result<room_mvp::EventFlow> {
+        use room_mvp::{RuntimeEvent, EventFlow};
+        use crossterm::event::{KeyCode, KeyModifiers};
+
+        if let RuntimeEvent::Key(key_event) = event {
+            match key_event.code {
+                KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => {
+                    ctx.request_exit();
+                    Ok(EventFlow::Consumed)
+                }
+                KeyCode::Char('c') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                    ctx.request_exit();
+                    Ok(EventFlow::Consumed)
+                }
+                _ => Ok(EventFlow::Continue),
+            }
+        } else {
+            Ok(EventFlow::Continue)
+        }
     }
 }

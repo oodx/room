@@ -23,6 +23,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use boxy::{BoxColors, BoxyConfig, WidthConfig, render_to_string};
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use room_mvp::{
     AnsiRenderer, CliDriver, Constraint, Direction, EventFlow, LayoutNode, LayoutTree,
@@ -52,7 +53,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
 
     let mut runtime =
-        RoomRuntime::with_config(layout.clone(), renderer, Size::new(100, 30), config)?;
+        RoomRuntime::with_config(layout.clone(), renderer, Size::new(110, 35), config)?;
 
     // Set up screen manager - REQUIRED for proper zone initialization
     let mut screen_manager = ScreenManager::new();
@@ -341,6 +342,33 @@ impl EditorState {
         buffer
     }
 
+    /// Render content wrapped in a pretty Boxy panel
+    fn render_content_with_boxy(&self) -> String {
+        let content = self.render_content_with_highlight();
+
+        let config = BoxyConfig {
+            text: content,
+            title: Some("Text Editor".to_string()),
+            colors: BoxColors {
+                box_color: "blue".to_string(),
+                text_color: "auto".to_string(),
+                title_color: Some("cyan".to_string()),
+                header_color: Some("bright_blue".to_string()),
+                footer_color: None,
+                status_color: None,
+            },
+            width: WidthConfig {
+                fixed_width: None,
+                enable_wrapping: false,
+                ..WidthConfig::default()
+            },
+            fixed_height: None,
+            ..Default::default()
+        };
+
+        render_to_string(&config)
+    }
+
     /// Generate line numbers - demonstrates independent zone updates
     fn render_line_numbers(&self) -> String {
         const VIEWPORT_HEIGHT: usize = 25;
@@ -396,8 +424,8 @@ impl EditorCorePlugin {
             // Update line numbers zone
             ctx.set_zone(LINE_NUMBERS_ZONE, state.render_line_numbers());
 
-            // Update content using ANSI highlighting without altering layout width.
-            ctx.set_zone_pre_rendered(CONTENT_ZONE, state.render_content_with_highlight());
+            // Update content using Boxy with ANSI highlighting
+            ctx.set_zone_pre_rendered(CONTENT_ZONE, state.render_content_with_boxy());
 
             // Update status zone text
             ctx.set_zone(STATUS_ZONE, state.render_status());
@@ -406,12 +434,19 @@ impl EditorCorePlugin {
         }
     }
 
-    /// Set cursor position after content is rendered
+    /// Set cursor position after content is rendered (accounting for Boxy borders)
     fn update_cursor_position(&self, ctx: &mut RuntimeContext) {
         if let Ok(state) = self.state.lock() {
             // Get the content zone rect to calculate absolute screen coordinates
             if let Some(content_rect) = ctx.rect(CONTENT_ZONE) {
                 let (cursor_row, cursor_col) = state.cursor_position();
+
+                // Account for Boxy panel borders and title:
+                // - Top border + title takes 2 lines
+                // - Left border takes 1 column
+                let boxy_row_offset = 2u16; // Top border + title
+                let boxy_col_offset = 2u16; // Left border + padding
+
                 // Convert zone-relative coordinates to absolute screen coordinates
                 let max_row = content_rect
                     .y
@@ -419,8 +454,16 @@ impl EditorCorePlugin {
                 let max_col = content_rect
                     .x
                     .saturating_add(content_rect.width.saturating_sub(1));
-                let absolute_row = content_rect.y.saturating_add(cursor_row).min(max_row);
-                let absolute_col = content_rect.x.saturating_add(cursor_col).min(max_col);
+                let absolute_row = content_rect
+                    .y
+                    .saturating_add(cursor_row)
+                    .saturating_add(boxy_row_offset)
+                    .min(max_row);
+                let absolute_col = content_rect
+                    .x
+                    .saturating_add(cursor_col)
+                    .saturating_add(boxy_col_offset)
+                    .min(max_col);
                 ctx.set_cursor_hint(absolute_row, absolute_col);
             }
         }

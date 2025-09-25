@@ -42,7 +42,7 @@ fn main() -> Result<()> {
     }
 
     let mut runtime =
-        RoomRuntime::with_config(layout.clone(), renderer, Size::new(100, 40), config)?;
+        RoomRuntime::with_config(layout.clone(), renderer, Size::new(120, 45), config)?;
 
     let mut screen_manager = ScreenManager::new();
     screen_manager.register_screen(ScreenDefinition::new(
@@ -73,17 +73,17 @@ fn build_layout() -> LayoutTree {
         id: "mud_boxy:root".into(),
         direction: Direction::Column,
         constraints: vec![
-            Constraint::Fixed(17),   // MAP_ZONE (increased for 3 rows of tiles)
+            Constraint::Fixed(15),   // MAP_ZONE (reduced for better fitting)
             Constraint::Flex(1),     // middle section (detail + inventory)
-            Constraint::Fixed(3),    // STATUS_ZONE
-            Constraint::Fixed(8),    // NAV_ZONE (increased for action buttons)
+            Constraint::Fixed(3),    // STATUS_ZONE (slightly increased)
+            Constraint::Fixed(8),    // NAV_ZONE (slightly reduced)
         ],
         children: vec![
             LayoutNode::leaf(MAP_ZONE),
             LayoutNode {
                 id: "mud_boxy:middle".into(),
                 direction: Direction::Row,
-                constraints: vec![Constraint::Flex(1), Constraint::Fixed(32)],
+                constraints: vec![Constraint::Flex(1), Constraint::Fixed(35)],
                 children: vec![
                     LayoutNode::leaf(DETAIL_ZONE),
                     LayoutNode::leaf(INVENTORY_ZONE),
@@ -301,8 +301,10 @@ impl BoxyMudPlugin {
 
         if self.nav_has_focus {
             ctx.show_cursor();
-            // cursor row: Boxy panel includes header line, then actions start at row 2.
-            ctx.set_cursor_in_zone(NAV_ZONE, (self.selected_action + 1) as i32, 3);
+            // Cursor positioning: border(0) + title(1) + hint(2) + action_row
+            let cursor_row = 3 + self.selected_action as i32;
+            let cursor_col = 1; // Just before the arrow marker
+            ctx.set_cursor_in_zone(NAV_ZONE, cursor_row, cursor_col);
         } else {
             ctx.hide_cursor();
         }
@@ -441,7 +443,7 @@ impl BoxyMudPlugin {
                 enable_wrapping: true,
                 ..WidthConfig::default()
             },
-            fixed_height: None, // Let Boxy calculate the height automatically
+            fixed_height: Some(7), // Fixed height for consistent layout
             ..Default::default()
         };
         render_to_string(&config)
@@ -551,7 +553,10 @@ impl BoxyMudPlugin {
             self.update_all(ctx);
         } else if has_focus {
             ctx.show_cursor();
-            ctx.set_cursor_in_zone(NAV_ZONE, (self.selected_action + 1) as i32, 3);
+            // Use the same cursor positioning logic as update_all
+            let cursor_row = 3 + self.selected_action as i32;
+            let cursor_col = 1;
+            ctx.set_cursor_in_zone(NAV_ZONE, cursor_row, cursor_col);
         } else {
             ctx.hide_cursor();
         }
@@ -731,11 +736,11 @@ fn render_room_tile(room: &Room, focused: bool) -> Vec<String> {
         title: Some(room.name.clone()),
         colors,
         width: WidthConfig {
-            fixed_width: Some(22),
+            fixed_width: Some(18),
             enable_wrapping: true,
             ..WidthConfig::default()
         },
-        fixed_height: Some(5),
+        fixed_height: Some(4),
         ..Default::default()
     };
     render_to_string(&config)
@@ -757,11 +762,11 @@ fn render_empty_tile() -> Vec<String> {
             status_color: None,
         },
         width: WidthConfig {
-            fixed_width: Some(22),
+            fixed_width: Some(18),
             enable_wrapping: true,
             ..WidthConfig::default()
         },
-        fixed_height: Some(5),
+        fixed_height: Some(4),
         ..Default::default()
     };
     render_to_string(&config)
