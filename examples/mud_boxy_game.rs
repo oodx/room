@@ -18,7 +18,7 @@ use room_mvp::runtime::FocusChange;
 use room_mvp::{
     AnsiRenderer, CliDriver, Constraint, Direction, LayoutNode, LayoutTree, LegacyScreenStrategy,
     Result, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent, ScreenDefinition,
-    ScreenManager, Size,
+    ScreenManager, Size, SimulatedLoop,
 };
 
 const MAP_ZONE: &str = "mud_boxy:map";
@@ -32,11 +32,17 @@ fn main() -> Result<()> {
     let layout = build_layout();
     let renderer = AnsiRenderer::with_default();
     let mut config = RuntimeConfig::default();
-    config.default_focus_zone = Some(NAV_ZONE.to_string());
+    // Start in room exploration mode - no default focus on navigation
     config.tick_interval = TICK_INTERVAL;
 
+    // Support both interactive and headless testing
+    let is_headless = std::env::var("CI").is_ok() || std::env::var("HEADLESS").is_ok();
+    if is_headless {
+        config.simulated_loop = Some(SimulatedLoop::ticks(5));
+    }
+
     let mut runtime =
-        RoomRuntime::with_config(layout.clone(), renderer, Size::new(100, 32), config)?;
+        RoomRuntime::with_config(layout.clone(), renderer, Size::new(100, 40), config)?;
 
     let mut screen_manager = ScreenManager::new();
     screen_manager.register_screen(ScreenDefinition::new(
@@ -49,9 +55,17 @@ fn main() -> Result<()> {
 
     runtime.register_plugin(BoxyMudPlugin::new());
 
-    CliDriver::new(runtime)
-        .run()
-        .map_err(|err| room_mvp::LayoutError::Backend(err.to_string()))
+    // Handle both interactive and headless execution
+    if is_headless {
+        let mut buffer = Vec::new();
+        runtime.run(&mut buffer)?;
+        println!("{}", String::from_utf8_lossy(&buffer));
+        Ok(())
+    } else {
+        CliDriver::new(runtime)
+            .run()
+            .map_err(|err| room_mvp::LayoutError::Backend(err.to_string()))
+    }
 }
 
 fn build_layout() -> LayoutTree {
@@ -59,10 +73,10 @@ fn build_layout() -> LayoutTree {
         id: "mud_boxy:root".into(),
         direction: Direction::Column,
         constraints: vec![
-            Constraint::Fixed(9),
-            Constraint::Flex(1),
-            Constraint::Fixed(6),
-            Constraint::Fixed(3),
+            Constraint::Fixed(17),   // MAP_ZONE (increased for 3 rows of tiles)
+            Constraint::Flex(1),     // middle section (detail + inventory)
+            Constraint::Fixed(3),    // STATUS_ZONE
+            Constraint::Fixed(8),    // NAV_ZONE (increased for action buttons)
         ],
         children: vec![
             LayoutNode::leaf(MAP_ZONE),
@@ -271,9 +285,9 @@ impl BoxyMudPlugin {
             current_room: "atrium".to_string(),
             inventory: Vec::new(),
             status: String::from("You arrive in the Sunlit Atrium."),
-            action_hint: String::from("Use 1: Inspect · 2: Collect · 3: Drop · 4: Inventory"),
+            action_hint: String::from("Use Tab to focus navigation, arrows to move between rooms"),
             selected_action: 0,
-            nav_has_focus: true,
+            nav_has_focus: false,  // Start in room exploration mode
         }
     }
 
@@ -404,7 +418,12 @@ impl BoxyMudPlugin {
                 self.action_label(*action)
             ));
         }
-        lines.push("Arrows move between rooms · Esc quits".to_string());
+        let instruction = if self.nav_has_focus {
+            "Tab: switch to map · Arrows: select actions · Esc: quit"
+        } else {
+            "Tab: switch to navigation · Arrows: move between rooms · Esc: quit"
+        };
+        lines.push(instruction.to_string());
 
         let config = BoxyConfig {
             text: lines.join("\n"),
@@ -422,7 +441,7 @@ impl BoxyMudPlugin {
                 enable_wrapping: true,
                 ..WidthConfig::default()
             },
-            fixed_height: Some(3 + actions.len()),
+            fixed_height: None, // Let Boxy calculate the height automatically
             ..Default::default()
         };
         render_to_string(&config)
@@ -567,6 +586,18 @@ impl RoomPlugin for BoxyMudPlugin {
             }
 
             match key_event.code {
+                KeyCode::Tab => {
+                    // Toggle focus between navigation and map/room exploration
+                    if self.nav_has_focus {
+                        self.status = "[Focus] Room exploration mode".into();
+                        self.apply_focus_change(ctx, false);
+                    } else {
+                        self.status = "[Focus] Navigation actions ready".into();
+                        self.apply_focus_change(ctx, true);
+                    }
+                    self.update_all(ctx);
+                    return Ok(room_mvp::EventFlow::Consumed);
+                }
                 KeyCode::Esc => {
                     ctx.request_exit();
                     return Ok(room_mvp::EventFlow::Consumed);
@@ -583,32 +614,42 @@ impl RoomPlugin for BoxyMudPlugin {
                 }
                 KeyCode::Left | KeyCode::Up => {
                     if self.nav_has_focus {
+                        // Navigation focused: arrow keys cycle through actions
                         self.cycle_action(ctx, -1);
                         return Ok(room_mvp::EventFlow::Consumed);
-                    }
-                    if let Some(direction) =
-                        DirectionKey::from_key(if matches!(key_event.code, KeyCode::Left) {
-                            KeyCode::Left
-                        } else {
-                            KeyCode::Up
-                        })
-                    {
-                        self.move_to(direction);
+                    } else {
+                        // Map focused: arrow keys move between rooms
+                        if let Some(direction) =
+                            DirectionKey::from_key(if matches!(key_event.code, KeyCode::Left) {
+                                KeyCode::Left
+                            } else {
+                                KeyCode::Up
+                            })
+                        {
+                            self.move_to(direction);
+                            self.update_all(ctx);
+                            return Ok(room_mvp::EventFlow::Consumed);
+                        }
                     }
                 }
                 KeyCode::Right | KeyCode::Down => {
                     if self.nav_has_focus {
+                        // Navigation focused: arrow keys cycle through actions
                         self.cycle_action(ctx, 1);
                         return Ok(room_mvp::EventFlow::Consumed);
-                    }
-                    if let Some(direction) =
-                        DirectionKey::from_key(if matches!(key_event.code, KeyCode::Right) {
-                            KeyCode::Right
-                        } else {
-                            KeyCode::Down
-                        })
-                    {
-                        self.move_to(direction);
+                    } else {
+                        // Map focused: arrow keys move between rooms
+                        if let Some(direction) =
+                            DirectionKey::from_key(if matches!(key_event.code, KeyCode::Right) {
+                                KeyCode::Right
+                            } else {
+                                KeyCode::Down
+                            })
+                        {
+                            self.move_to(direction);
+                            self.update_all(ctx);
+                            return Ok(room_mvp::EventFlow::Consumed);
+                        }
                     }
                 }
                 other => {
