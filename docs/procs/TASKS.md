@@ -74,11 +74,11 @@
 - Added troubleshooting notes to `docs/ref/workshops/workshop_boxy_dashboard_runtime.md` covering prompt behaviour and
   refresh tips.
 
-### [!] ROOM-615: Boxy dashboard lifecycle regression [2 pts]
-- `examples/boxy_dashboard_runtime` renders its first frame but never emits `UserReady`, so the CLI driver keeps input gated
-  and no `RuntimeEvent::Key`/`FocusChanged` reach the plugin.
-- Hypothesis: bootstrap/screen activation path fails to request a render (dirty zones never flushed). Trace
-  `ScreenManager::finish_activation` → `RoomRuntime::render_if_needed` to verify and restore the user-ready signal.
+### [x] ROOM-615: Boxy dashboard lifecycle regression [2 pts]
+- FIXED: UserReady emission decoupled from dirty zone rendering in commit 6de0bd9.
+- Root cause: UserReady was only firing when `!dirty.is_empty()` in `render_if_needed()`, breaking CLI driver contract.
+- Solution: Moved UserReady emission outside dirty zone conditional - now fires after bootstrap completion regardless of zone state.
+- CLI driver should now properly enter event loop and process keyboard/focus events without stalling in `event::poll()`.
 
 ### [x] WORKSHOP-202: Boxy Grid Workshop [2 pts]
 - Introduced `examples/workshop_boxy_grid.rs` with multi-scenario grid walkthroughs.
@@ -217,6 +217,14 @@
 - Implement a structured error sink that emits `Error` events, coordinates recovery handlers, and escalates to `Fatal`, `FatalCleanup`, and `FatalClose` when necessary.
 - Wire audit stages and driver teardown to respect the fatal path while restoring terminal state safely.
 - Add regression tests covering recoverable errors and fatal shutdown flows.
+
+### [x] ROOM-617: SimulatedLoop execution implementation [3 pts]
+- COMPLETED: Wired `RuntimeConfig::simulated_loop` and `loop_iteration_limit` into `RoomRuntime::run()` execution path in commit 1a951e9.
+- Added early branching in `run()` to detect simulated mode and call `run_simulated_internal()` helper.
+- Implemented loop guard enforcement with iteration counters across CLI, scripted, and simulated modes.
+- Added proper audit stage emissions: `LoopSimulated` → `LoopSimulatedComplete`/`LoopSimulatedAborted` based on `fatal_active`.
+- Emit `LoopGuardTriggered` + `LoopAborted` pair when iteration limits are reached.
+- Updated `workshop_lifecycle_trace_01.rs` to use `SimulatedLoop::ticks(6)` - now runs headlessly without TTY access.
 
 ### [ ] ROOM-615: Test timeout sweep [2 pts]
 - Audit existing integration/unit tests that rely on the CLI driver and add `loop_iteration_limit` or port them to `run_scripted`/`SimulatedLoop` helpers.

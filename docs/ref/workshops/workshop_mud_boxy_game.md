@@ -44,9 +44,9 @@ cargo run --example mud_boxy_game
   plugins once multi-plugin coordination patterns solidify.
 - We rely on fixed `WidthConfig::fixed_width` values — future polish should derive width/height from the solved rects to
   better handle terminal resizing.
-- The navigation panel now participates in focus + cursor lifecycle events. When the bar owns focus, `set_cursor_in_zone`
-  keeps the caret aligned with the highlighted action, demonstrating how to combine Boxy renders with runtime cursor
-  hints.
+- Focus lifecycle is still pending: the navigation bar never acquires ownership through `FocusController`, so the
+  current build only receives the bootstrap `FocusChanged` event. Port the approach from `workshop_focus_events` before
+  treating this as production-ready guidance.
 
 ## TODO / Known Gaps
 
@@ -55,6 +55,8 @@ cargo run --example mud_boxy_game
 - No error handling when actions are spammed; inventory duplicates can occur if future mechanics expand.
 - Workshop exercises and troubleshooting are still pending; needs examples covering Boxy palette tweaking, wrapping, and
   navigation hints.
+- Lifecycle integration TODO — wire up a `FocusController` so cursor hints match runtime state instead of relying on
+  local flags.
 
 ## Next Steps
 

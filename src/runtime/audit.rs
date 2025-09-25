@@ -69,6 +69,16 @@ pub enum RuntimeAuditStage {
     RenderSkipped,
     /// Runtime stopped (typically after exit request).
     RuntimeStopped,
+    /// Driver loop exited because a guard prevented further iterations.
+    LoopGuardTriggered,
+    /// Driver loop aborted early (fatal teardown).
+    LoopAborted,
+    /// Runtime entered a simulated loop (bounded iterations).
+    LoopSimulated,
+    /// Runtime completed the simulated loop.
+    LoopSimulatedComplete,
+    /// Runtime aborted the simulated loop before completion (typically fatal path).
+    LoopSimulatedAborted,
 }
 
 /// Structured audit entry.
