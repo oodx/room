@@ -61,6 +61,33 @@ struct PluginEntry {
     plugin: Box<dyn RoomPlugin>,
 }
 
+/// Configuration for a bounded simulated loop.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SimulatedLoop {
+    /// Maximum number of iterations to execute before the runtime tears down.
+    pub max_iterations: usize,
+    /// Whether to emit synthetic tick events each iteration.
+    pub dispatch_ticks: bool,
+}
+
+impl SimulatedLoop {
+    /// Create a loop that runs for `max_iterations` iterations emitting ticks.
+    pub fn ticks(max_iterations: usize) -> Self {
+        Self {
+            max_iterations,
+            dispatch_ticks: true,
+        }
+    }
+
+    /// Create a loop that runs for `max_iterations` iterations without ticks.
+    pub fn silent(max_iterations: usize) -> Self {
+        Self {
+            max_iterations,
+            dispatch_ticks: false,
+        }
+    }
+}
+
 /// Configuration knobs for the runtime loop.
 #[derive(Clone)]
 pub struct RuntimeConfig {
@@ -78,6 +105,10 @@ pub struct RuntimeConfig {
     pub audit: Option<Arc<dyn RuntimeAudit>>,
     /// Zone that should receive focus automatically once bootstrap completes.
     pub default_focus_zone: Option<String>,
+    /// Optional loop guard for the driver event loop.
+    pub loop_iteration_limit: Option<usize>,
+    /// When present, bypasses the driver loop and uses a bounded simulated loop.
+    pub simulated_loop: Option<SimulatedLoop>,
 }
 
 impl Default for RuntimeConfig {
@@ -90,6 +121,8 @@ impl Default for RuntimeConfig {
             metrics_target: "room::runtime.metrics".to_string(),
             audit: None,
             default_focus_zone: None,
+            loop_iteration_limit: None,
+            simulated_loop: None,
         }
     }
 }
@@ -979,12 +1012,14 @@ impl RoomRuntime {
             let mut builder = RuntimeAuditEventBuilder::new(RuntimeAuditStage::RenderCommitted);
             builder.detail("dirty_zones", json!(dirty.len()));
             self.audit_record_event(builder.finish());
-            if !self.user_ready_emitted {
-                self.user_ready_emitted = true;
-                self.audit_record(RuntimeAuditStage::UserReady, []);
-                self.log_lifecycle_stage("user_ready");
-                self.notify_plugins(|plugin, ctx| plugin.on_user_ready(ctx))?;
-            }
+        }
+
+        // Emit UserReady after bootstrap completion, regardless of dirty zones
+        if !self.user_ready_emitted {
+            self.user_ready_emitted = true;
+            self.audit_record(RuntimeAuditStage::UserReady, []);
+            self.log_lifecycle_stage("user_ready");
+            self.notify_plugins(|plugin, ctx| plugin.on_user_ready(ctx))?;
         }
 
         for idx in 0..self.plugins.len() {
