@@ -21,7 +21,7 @@ serde_json = "1.0"
 rsb = { path = "../../projects/rsb" }
 
 [dev-dependencies]
-boxy = { git = "https://github.com/oodx/boxy.git" }
+boxy = { path = "../boxy" }
 rsb = { path = "../../projects/rsb", features = ["visuals"] }
 criterion = "0.7"
 

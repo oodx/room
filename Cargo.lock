@@ -77,10 +77,10 @@ dependencies = [
 
 [[package]]
 name = "boxy"
-version = "0.18.2"
-source = "git+https://github.com/oodx/boxy.git#60ef82ddb23b93a8678912c8f91c62d8a430ec98"
+version = "0.21.0"
 dependencies = [
  "chrono",
+ "once_cell",
  "regex",
  "rsb",
  "serde",
