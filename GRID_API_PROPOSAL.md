@@ -85,10 +85,16 @@ impl GridArea {
     }
 
     /// Validate area is within grid bounds
-    pub(crate) fn validate(self, row_count: usize, col_count: usize) -> Result<Self, GridError> {
+    pub(crate) fn validate(self, zone: &ZoneId, row_count: usize, col_count: usize) -> Result<Self, GridError> {
         if self.rows.end > row_count || self.cols.end > col_count {
             return Err(GridError::OutOfBounds {
-                // ... error details
+                zone: zone.clone(),
+                row_start: self.rows.start,
+                row_end: self.rows.end,
+                row_count,
+                col_start: self.cols.start,
+                col_end: self.cols.end,
+                col_count,
             });
         }
         Ok(self)
@@ -147,12 +153,21 @@ impl GridLayout {
     }
 
     /// Place a zone at a grid area
-    /// Returns error if area is out of bounds or overlaps existing zone
+    /// Returns error if area is out of bounds, overlaps existing zone, or zone already exists
     pub fn place(&mut self, zone_id: impl Into<ZoneId>, area: GridArea) -> Result<&mut Self, GridError> {
         let zone_id = zone_id.into();
-        let area = area.validate(self.rows.len(), self.cols.len())?;
 
-        // Check for overlaps
+        // Check for duplicate zone
+        if self.areas.contains_key(&zone_id) {
+            return Err(GridError::DuplicateZone {
+                zone: zone_id,
+            });
+        }
+
+        // Validate bounds
+        let area = area.validate(&zone_id, self.rows.len(), self.cols.len())?;
+
+        // Check for overlaps with existing zones
         for (existing_id, existing_area) in &self.areas {
             if existing_area.overlaps(&area) {
                 return Err(GridError::OverlappingAreas {
@@ -455,11 +470,95 @@ if !ctx.is_zone_hidden("main") {
    - Overlap detection prevents hard-to-debug rendering issues
    - Small performance cost at layout construction (one-time, not per-frame)
 
-5. **Percent overflow**: ✅ **RESOLVED**
-   - If percentages sum > 100%: **Normalize to 100%** proportionally
-   - If percentages sum < 100%: Remaining space goes to Flex tracks
-   - Rounding errors: Distribute leftovers to Flex tracks (leftmost first)
-   - Example: `[Percent(33), Percent(33), Percent(33)]` with width 100 → [33, 33, 34]
+5. **Percent sizing and rounding**: ✅ **RESOLVED**
+
+   **Algorithm (executed during `solve()`):**
+
+   a. **Calculate Fixed tracks** - Reserve absolute space first
+      ```rust
+      for track in tracks {
+          if let Fixed(size) = track {
+              reserved += size;
+          }
+      }
+      remaining = total - reserved - (gap * (track_count - 1));
+      ```
+
+   b. **Calculate Percent tracks** - Convert to proportional weights
+      ```rust
+      // Convert percentages to u32 for precise arithmetic
+      let total_percent: u32 = tracks.iter()
+          .filter_map(|t| match t { Percent(p) => Some(p.get() as u32), _ => None })
+          .sum();
+
+      // If sum > 100: normalize proportionally
+      // If sum <= 100: use as-is, remaining goes to Flex
+      for track in tracks {
+          if let Percent(p) = track {
+              let weight = if total_percent > 100 {
+                  // Normalize: p / total_percent * 100
+                  (p.get() as u32 * 100) / total_percent
+              } else {
+                  p.get() as u32
+              };
+              let size = (remaining as u32 * weight / 100) as u16;
+              track_sizes.push(size);
+              allocated += size;
+          }
+      }
+      remaining -= allocated;
+      ```
+
+   c. **Calculate Flex tracks** - Distribute remaining space
+      ```rust
+      let total_flex: u32 = tracks.iter()
+          .filter_map(|t| match t { Flex(f) => Some(f.get() as u32), _ => None })
+          .sum();
+
+      for track in tracks {
+          if let Flex(f) = track {
+              let size = (remaining as u32 * f.get() as u32 / total_flex) as u16;
+              track_sizes.push(size);
+              allocated += size;
+          }
+      }
+      remaining -= allocated;
+      ```
+
+   d. **Redistribute rounding leftovers** - Ensure grid spans full axis
+      ```rust
+      // Distribute remaining cells to Flex tracks (leftmost first)
+      let mut leftover = total - track_sizes.iter().sum::<u16>();
+      for (i, track) in tracks.iter().enumerate() {
+          if leftover == 0 { break; }
+          if matches!(track, Flex(_)) {
+              track_sizes[i] += 1;
+              leftover -= 1;
+          }
+      }
+      ```
+
+   **Examples:**
+   - `[Percent(33), Percent(33), Percent(33)]` with width 100:
+     - Each gets 33 cells → total 99
+     - Leftover: 1 cell
+     - No Flex tracks → leftover stays (acceptable 1-cell gap)
+
+   - `[Percent(50), Percent(50), Flex(1)]` with width 100:
+     - Percents: 50 + 50 = 100 cells
+     - Flex gets remaining 0 cells
+     - Leftover: 0 → exact fit
+
+   - `[Percent(33), Percent(33), Flex(1)]` with width 100:
+     - Percents: 33 + 33 = 66 cells
+     - Flex gets remaining 34 cells
+     - Leftover: 0 → exact fit
+
+   - `[Percent(60), Percent(60)]` with width 100 (overflow):
+     - Total: 120% → normalize to 100%
+     - Track 0: (60/120)*100 = 50 cells
+     - Track 1: (60/120)*100 = 50 cells
+     - Total: 100 → exact fit
 
 6. **GridSize::Auto**: ✅ **RESOLVED**
    - **Defer to Phase 5** (requires content introspection)
@@ -483,6 +582,11 @@ pub enum GridError {
         col_start: usize,
         col_end: usize,
         col_count: usize,
+    },
+
+    #[error("Zone '{zone}' already exists in grid")]
+    DuplicateZone {
+        zone: ZoneId,
     },
 
     #[error("GridArea for zones '{zone1}' and '{zone2}' overlap")]
@@ -523,7 +627,7 @@ All examples will be updated in Phase 4.
 
 ## Approval Checklist
 
-Before implementation, confirm:
+**Round 1 (Initial Feedback):**
 - [x] API shape looks correct
 - [x] Usage examples are clear and intuitive
 - [x] GridSize enum has right variants (Fixed, Flex, Percent) with NonZeroU16
@@ -536,4 +640,15 @@ Before implementation, confirm:
 - [x] Gap behavior defined (between tracks only)
 - [x] Breaking changes are acceptable
 - [x] All design decisions resolved
-- [x] Ready to proceed with Phase 1 implementation
+
+**Round 2 (Codex Refinements):**
+- [x] GridArea::validate error fields complete (not placeholder)
+- [x] GridLayout::place zone_id ownership fixed (no move error)
+- [x] Duplicate zone detection added (contains_key check)
+- [x] GridError::DuplicateZone variant added
+- [x] Rounding/redistribution algorithm documented (4-step with examples)
+- [x] u32 conversion for precise arithmetic specified
+- [x] ZoneId type alias approved (defer optimization)
+- [x] Overlap detection always-on (no optional flag)
+
+**✅ ALL CHECKS COMPLETE - GREEN LIGHT FOR PHASE 1 IMPLEMENTATION**
