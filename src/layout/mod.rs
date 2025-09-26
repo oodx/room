@@ -4,5 +4,7 @@
 //! implementation details live in the private `core` module.
 
 mod core;
+pub mod grid;
 
 pub use core::{Constraint, Direction, LayoutNode, LayoutTree, NodeId};
+pub use grid::{GridSize, ZoneId};
