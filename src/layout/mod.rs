@@ -7,4 +7,4 @@ mod core;
 pub mod grid;
 
 pub use core::{Constraint, Direction, LayoutNode, LayoutTree, NodeId};
-pub use grid::{GridSize, ZoneId};
+pub use grid::{GridArea, GridError, GridLayout, GridSize, ZoneId};
