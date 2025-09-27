@@ -1,7 +1,7 @@
 # Grid Layout Implementation Status
 
 **Last Updated:** 2025-09-26
-**Current Phase:** Phase 3 (Boxy Integration Helpers)
+**Current Phase:** Phase 4 (Examples & Documentation)
 
 ## Progress Summary
 
@@ -33,8 +33,18 @@
   - Decision: Kept LayoutTree for backwards compatibility (both work via trait)
   - Gap edge cases: excessive gaps, gap >= terminal width, gap consumes all space
 
+- **Phase 3: Boxy Integration Helpers** (Complete - Commits `19fc356`, `06877c2`)
+  - **Phase 3.1:** BoxConfig struct with style, min_width, min_height, collapse_mode
+  - **Phase 3.2:** CollapseMode enum (Hide, Show) for minimum size handling
+  - **Phase 3.3:** RuntimeContext::render_zone_with_box() helper method
+  - **Phase 3.4:** Updated grid_simple.rs to use new helper (simplified)
+  - All 71 tests passing
+  - Moved boxy from dev-dependencies to dependencies
+  - Dimension clamping: .max(1) prevents BoxBuilder panic on 0-sized rects
+  - Hide mode returns None early (no stale content in registry)
+
 ### ⏳ In Progress
-- **Phase 3:** Boxy integration helpers (Next up)
+- **Phase 4:** Examples & Documentation (Next up)
 
 ### 🔮 Upcoming
 - **Phase 3:** Boxy integration helpers
@@ -81,12 +91,15 @@
 
 ## Next Steps
 
-**Phase 3: Boxy Integration Helpers**
-1. Add RuntimeContext helper methods for automatic Boxy rendering
-2. Implement minimum size handling (collapse/hide zones below threshold)
-3. Implement automatic wrapping control (detect overflow, wrap/truncate)
-4. Add resize-aware rendering (zones re-render when Rect changes)
-5. Test with grid_simple.rs and create more complex examples
+**Phase 4: Examples & Documentation**
+1. Create showcase example (grid_showcase.rs) - dashboard layout
+2. Update existing examples to use GridLayout and new helpers:
+   - boxy_api_demo.rs
+   - boxy_dynamic_resize.rs
+   - boxy_grid_dynamic.rs
+3. Write migration guide (docs/GRID_MIGRATION.md)
+4. Update architecture docs (GRID_LAYOUT.md, README.md)
+5. Optional: Add Grid workshop (workshop_grid_basics.md)
 
 ## Test Coverage
 

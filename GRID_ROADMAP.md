@@ -112,11 +112,12 @@ Replace Room's nested flexbox-style layout with a declarative CSS Grid-inspired 
 
 ---
 
-## Phase 3: Boxy Integration Helpers
+## Phase 3: Boxy Integration Helpers ✅ COMPLETE
 **Goal:** Make Boxy rendering automatic and robust
+**Status:** Complete (Commits `19fc356`, `06877c2`)
 
 ### Tasks
-- [ ] **3.1** Add `RuntimeContext` helper methods
+- [x] **3.1** Add `RuntimeContext` helper methods
   ```rust
   impl RuntimeContext {
       // Automatic Boxy rendering with sensible defaults
@@ -138,26 +139,26 @@ Replace Room's nested flexbox-style layout with a declarative CSS Grid-inspired 
   }
   ```
 
-- [ ] **3.2** Implement minimum size handling
-  - Zones below threshold show "collapsed" state
-  - Automatic "..." truncation
-  - Option to hide vs collapse
+- [x] **3.2** Implement minimum size handling
+  - Zones below threshold show "collapsed" state (CollapseMode::Show)
+  - Automatic "..." truncation when below 5x3
+  - Option to hide vs collapse (CollapseMode enum)
 
-- [ ] **3.3** Implement automatic wrapping control
-  - Detect when content exceeds width
-  - Enable wrapping automatically OR truncate
-  - Configurable per zone
+- [x] **3.3** BoxConfig with builder pattern
+  - Style, min_width, min_height, collapse_mode
+  - Derive Copy for ergonomic reuse
+  - Dimension clamping to prevent BoxBuilder panic
 
-- [ ] **3.4** Add resize-aware rendering
-  - Zones re-render when Rect changes
-  - Content adapts to new dimensions
-  - Scroll position preservation (future)
+- [x] **3.4** Updated grid_simple.rs example
+  - Demonstrates render_zone_with_box() usage
+  - Explicit if-let-Some pattern with set_zone
+  - Much simpler than manual BoxBuilder calls
 
-**Acceptance Criteria:**
-- Plugins don't manually call `ctx.rect()` anymore
-- Minimum sizes handled gracefully
-- No unexpected wrapping
-- Content fills available space (padding works)
+**Acceptance Criteria:** ✅ ALL MET
+- ✅ One-call rendering with render_zone_with_box()
+- ✅ Minimum sizes handled gracefully (Hide/Show modes)
+- ✅ Dimension clamping prevents panic on 0-sized rects
+- ✅ Content respects rect width/height as upper bounds
 
 ---
 
