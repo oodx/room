@@ -900,8 +900,21 @@ impl RoomRuntime {
             if event::poll(timeout)? {
                 let crossterm_event = event::read()?;
                 let runtime_event = self.map_event(crossterm_event)?;
+
+                // Check if this is a resize before dispatching (to coalesce rapid resizes)
+                let is_resize = matches!(runtime_event, RuntimeEvent::Resize(_));
+
                 self.dispatch_event(runtime_event)?;
-                self.render_if_needed(stdout)?;
+
+                // If this was a resize and more events are immediately ready, skip render
+                // to coalesce rapid resize events (prevents race condition artifacts)
+                let should_skip_render =
+                    is_resize && event::poll(Duration::from_millis(0)).unwrap_or(false);
+
+                if !should_skip_render {
+                    self.render_if_needed(stdout)?;
+                }
+
                 if self.should_exit {
                     break;
                 }
