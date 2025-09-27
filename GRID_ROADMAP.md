@@ -21,34 +21,37 @@ Replace Room's nested flexbox-style layout with a declarative CSS Grid-inspired 
 
 ---
 
-## Phase 1: Core Grid Foundation
+## Phase 1: Core Grid Foundation ✅ COMPLETE
 **Goal:** Implement the grid solver and test it thoroughly
+**Status:** Complete (Commit `b8238f9`)
 
 ### Tasks
-- [ ] **1.1** Design final `GridLayout` API
+- [x] **1.1** Design final `GridLayout` API
   - Review API with examples
   - Document design decisions
-  - Get approval on API shape
+  - Get approval on API shape (2 rounds Codex feedback)
 
-- [ ] **1.2** Implement `GridSize` enum
+- [x] **1.2** Implement `GridSize` enum
   - `Fixed(u16)` - absolute cells
-  - `Flex(u16)` - proportional units (fr)
-  - `Percent(u8)` - percentage 0-100
-  - Consider: `Auto`, `Min`, `Max` for v2?
+  - `Flex(NonZeroU16)` - proportional units (fr) - type-safe
+  - `Percent(NonZeroU8)` - percentage 1-100 - type-safe
+  - Deferred: `Auto`, `Min`, `Max` for v2
 
-- [ ] **1.3** Implement `GridArea` placement
+- [x] **1.3** Implement `GridArea` placement
   - `cell(row, col)` - single cell
   - `new(rows: Range<usize>, cols: Range<usize>)` - span
   - `span_rows(col, rows)` - helper
   - `span_cols(row, cols)` - helper
+  - `validate()` - bounds checking
+  - `overlaps()` - conflict detection
 
-- [ ] **1.4** Implement grid solver
-  - `solve_axis()` - calculate column offsets
-  - `solve_axis()` - calculate row offsets
-  - Map GridArea → Rect
-  - Handle rounding errors (distribute leftovers)
+- [x] **1.4** Implement grid solver
+  - `solve_axis()` - calculate column/row offsets and sizes
+  - Map GridArea → Rect using offsets
+  - Handle rounding errors (distribute leftovers: Flex → Percent)
+  - Minimum size guarantee (zero-width tracks get ≥1px, budget enforced)
 
-- [ ] **1.5** Write comprehensive tests
+- [x] **1.5** Write comprehensive tests (36/36 passing)
   - Fixed sizes only
   - Flex distribution (1:2:1 ratios)
   - Percent calculations
@@ -56,12 +59,17 @@ Replace Room's nested flexbox-style layout with a declarative CSS Grid-inspired 
   - Edge cases (0 size, overflow, single cell)
   - Spanning cells
   - Rounding error distribution
+  - Percent-only layouts (full axis utilization)
+  - Vanishing tracks (small percent, minimum guarantee)
+  - Over-constrained layouts (more tracks than pixels)
 
-**Acceptance Criteria:**
-- Grid solver produces correct Rects for all test cases
-- Rows align perfectly across columns
-- No visual gaps or overlaps
-- Rounding errors distributed correctly
+**Acceptance Criteria:** ✅ ALL MET
+- ✅ Grid solver produces correct Rects for all test cases
+- ✅ Rows align perfectly across columns
+- ✅ No visual gaps or overlaps
+- ✅ Rounding errors distributed correctly
+- ✅ Percent-only layouts use full axis
+- ✅ Over-constrained layouts never exceed boundaries
 
 ---
 

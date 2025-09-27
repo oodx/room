@@ -1,7 +1,7 @@
 # Grid Layout Implementation Status
 
 **Last Updated:** 2025-09-26
-**Current Phase:** Phase 1 (Core Grid Foundation)
+**Current Phase:** Phase 2 (Runtime Integration)
 
 ## Progress Summary
 
@@ -13,21 +13,21 @@
   - Error handling defined
   - Rounding algorithm documented
 
-- **Phase 1.2: GridSize enum** (Complete - Commit `b31937e`)
-  - `GridSize::Fixed(u16)` - Absolute sizing
-  - `GridSize::Flex(NonZeroU16)` - Proportional (fr units)
-  - `GridSize::Percent(NonZeroU8)` - Percentage 1-100
-  - Convenience constructors: `flex()`, `percent()`
-  - 7 tests, all passing
-  - Module structure: `src/layout/grid.rs`
+- **Phase 1: Core Grid Foundation** (Complete - Commit `b8238f9`)
+  - **Phase 1.2:** GridSize enum with type safety
+  - **Phase 1.3:** GridArea placement types (cell, span, validation, overlap detection)
+  - **Phase 1.4:** GridLayout struct with builder pattern and solver
+  - **Phase 1.5:** Comprehensive testing and edge case handling
+  - 36/36 tests passing
+  - Grid solver with 4-step algorithm (Fixed → Percent → Flex → Leftover)
+  - Leftover redistribution: Flex → Percent (ensures full axis utilization)
+  - Minimum size guarantee with budget enforcement
+  - Over-constrained layout protection
 
 ### ⏳ In Progress
-- **Phase 1.3: GridArea placement** (Next up)
+- **Phase 2:** Runtime integration (Next up)
 
 ### 🔮 Upcoming
-- **Phase 1.4:** Grid solver (col/row calculation)
-- **Phase 1.5:** Comprehensive grid solver tests
-- **Phase 2:** Runtime integration (replace LayoutTree)
 - **Phase 3:** Boxy integration helpers
 - **Phase 4:** Update examples and documentation
 - **Phase 5:** Polish and edge cases
@@ -49,7 +49,8 @@
    - 4-step process: Fixed → Percent → Flex → Leftovers
    - u32 arithmetic for precision
    - Percent normalization when > 100%
-   - Leftover redistribution to leftmost Flex tracks
+   - Leftover redistribution priority: Flex → Percent (not Fixed)
+   - Minimum size guarantee: zero-width tracks get ≥1px (budget enforced)
 
 ## Files Created/Modified
 
@@ -58,59 +59,62 @@
 - `GRID_API_PROPOSAL.md` - Full API specification
 - `GRID_API_CHANGES.md` - Codex feedback resolutions
 - `GRID_STATUS.md` - This file (implementation tracker)
-- `src/layout/grid.rs` - Grid layout implementation (138 lines)
+- `src/layout/grid.rs` - Grid layout implementation (870 lines)
 
 ### Modified
-- `src/layout/mod.rs` - Public API exports
+- `src/layout/mod.rs` - Public API exports (GridLayout, GridArea, GridError, GridSize, ZoneId)
 - `Cargo.toml` - Boxy dependency to local path
 - `docs/BOXY_API_README.md` - Boxy v0.21.0 docs
 - `docs/BOXY_INTEGRATION.md` - Migration guide
 - `examples/boxy_api_demo.rs` - Boxy showcase
 - `examples/boxy_dynamic_resize.rs` - Resize handling
-- `examples/boxy_grid_dynamic.rs` - Grid prototype
+- `examples/boxy_grid_dynamic.rs` - Grid prototype (uses old LayoutTree)
 
-## Next Steps (After Compact)
+## Next Steps
 
-1. **Implement GridArea** (Phase 1.3)
-   - `GridArea` struct with `rows: Range<usize>`, `cols: Range<usize>`
-   - Helper methods: `cell()`, `span_rows()`, `span_cols()`, `new()`
-   - Validation: `validate()` - check bounds
-   - Overlap detection: `overlaps()` - detect conflicts
-   - Tests for all placement patterns
+**Phase 2: Runtime Integration**
+1. Integrate GridLayout with RoomRuntime
+2. Update runtime to use `solve()` for layout calculation
+3. Deprecate or remove old LayoutTree system
+4. Update all examples to use GridLayout
+5. Test resize handling with grid layouts
 
-2. **Implement Grid Solver** (Phase 1.4)
-   - `solve_axis()` - calculate track offsets
-   - Handle Fixed, Percent, Flex sizing
-   - Gap distribution
-   - Rounding error redistribution
-   - Return track offset vectors
-
-3. **Implement GridLayout** (Phase 1.4 continued)
-   - `GridLayout` struct with cols, rows, areas
-   - Builder methods: `add_col()`, `add_row()`, `place()`
-   - `solve()` - map GridArea → Rect using track offsets
-   - Integration with `GridError`
+**Phase 3: Boxy Integration Helpers**
+- Helper methods for rendering zones with Boxy
+- Visibility controls integration
+- Dynamic show/hide support
 
 ## Test Coverage
 
-### GridSize (Phase 1.2)
-- ✅ 7/7 tests passing
-- Coverage: Construction, validation, edge cases, panics
+### Phase 1 Complete: 36/36 tests passing
 
-### GridArea (Phase 1.3 - TODO)
-- Construction helpers
-- Validation logic
-- Overlap detection
-- Out of bounds cases
+**GridSize (7 tests)**
+- ✅ Construction: Fixed, Flex, Percent variants
+- ✅ Validation: Zero detection, range enforcement
+- ✅ Edge cases: Min/max percent (1, 100)
+- ✅ Panics: Zero flex, invalid percent (0, 101)
 
-### Grid Solver (Phase 1.4 - TODO)
-- Fixed sizing
-- Percent sizing (normalization, overflow)
-- Flex sizing (distribution)
-- Mixed sizing (Fixed + Percent + Flex)
-- Gap handling
-- Rounding leftover distribution
-- Edge cases (0 size, single track, etc.)
+**GridArea (12 tests)**
+- ✅ Construction: cell(), new(), span_rows(), span_cols()
+- ✅ Validation: bounds checking, detailed error messages
+- ✅ Overlap detection: true/false cases, adjacent, contained
+- ✅ Out of bounds: row/column overflow
+
+**GridLayout (17 tests)**
+- ✅ Builder pattern: add_col, add_row, place, with_gap
+- ✅ Placement validation: duplicate zones, out of bounds, overlaps
+- ✅ Solver - Fixed sizing only
+- ✅ Solver - Flex distribution (proportional)
+- ✅ Solver - Percent sizing
+- ✅ Solver - Mixed sizing (Fixed + Flex + Percent)
+- ✅ Solver - Gap handling
+- ✅ Solver - Spanning zones
+- ✅ Solver - Percent-only leftover redistribution
+- ✅ Solver - Small percent no vanishing (≥1px guarantee)
+- ✅ Solver - Vanishing track minimum enforcement
+- ✅ Solver - Percent normalization with leftover
+- ✅ Solver - Over-constrained budget (more tracks than pixels)
+- ✅ Solver - More tracks than pixels edge case
 
 ## Blockers / Issues
 
