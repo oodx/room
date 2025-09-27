@@ -104,8 +104,9 @@ impl GridDemoPlugin {
             ctx.rect(HEADER_ZONE).map(|r| r.height).unwrap_or(0),
             self.resize_count
         );
-        if let Some(rendered) = ctx.render_zone_with_box(HEADER_ZONE, &header_content, config) {
-            ctx.set_zone_pre_rendered(HEADER_ZONE, rendered);
+        match ctx.render_zone_with_box(HEADER_ZONE, &header_content, config) {
+            Some(rendered) => ctx.set_zone_pre_rendered(HEADER_ZONE, rendered),
+            None => ctx.set_zone_pre_rendered(HEADER_ZONE, String::new()),
         }
 
         let sidebar_content = format!(
@@ -114,8 +115,9 @@ impl GridDemoPlugin {
             ctx.rect(SIDEBAR_ZONE).map(|r| r.height).unwrap_or(0),
             self.resize_count
         );
-        if let Some(rendered) = ctx.render_zone_with_box(SIDEBAR_ZONE, &sidebar_content, config) {
-            ctx.set_zone_pre_rendered(SIDEBAR_ZONE, rendered);
+        match ctx.render_zone_with_box(SIDEBAR_ZONE, &sidebar_content, config) {
+            Some(rendered) => ctx.set_zone_pre_rendered(SIDEBAR_ZONE, rendered),
+            None => ctx.set_zone_pre_rendered(SIDEBAR_ZONE, String::new()),
         }
 
         let main_content = format!(
@@ -124,8 +126,9 @@ impl GridDemoPlugin {
             ctx.rect(MAIN_ZONE).map(|r| r.height).unwrap_or(0),
             self.resize_count
         );
-        if let Some(rendered) = ctx.render_zone_with_box(MAIN_ZONE, &main_content, config) {
-            ctx.set_zone_pre_rendered(MAIN_ZONE, rendered);
+        match ctx.render_zone_with_box(MAIN_ZONE, &main_content, config) {
+            Some(rendered) => ctx.set_zone_pre_rendered(MAIN_ZONE, rendered),
+            None => ctx.set_zone_pre_rendered(MAIN_ZONE, String::new()),
         }
 
         let aside_content = format!(
@@ -134,8 +137,9 @@ impl GridDemoPlugin {
             ctx.rect(ASIDE_ZONE).map(|r| r.height).unwrap_or(0),
             self.resize_count
         );
-        if let Some(rendered) = ctx.render_zone_with_box(ASIDE_ZONE, &aside_content, config) {
-            ctx.set_zone_pre_rendered(ASIDE_ZONE, rendered);
+        match ctx.render_zone_with_box(ASIDE_ZONE, &aside_content, config) {
+            Some(rendered) => ctx.set_zone_pre_rendered(ASIDE_ZONE, rendered),
+            None => ctx.set_zone_pre_rendered(ASIDE_ZONE, String::new()),
         }
 
         let footer_content = format!(
@@ -146,8 +150,9 @@ impl GridDemoPlugin {
             ctx.rect(FOOTER_ZONE).map(|r| r.height).unwrap_or(0),
             self.resize_count
         );
-        if let Some(rendered) = ctx.render_zone_with_box(FOOTER_ZONE, &footer_content, config) {
-            ctx.set_zone_pre_rendered(FOOTER_ZONE, rendered);
+        match ctx.render_zone_with_box(FOOTER_ZONE, &footer_content, config) {
+            Some(rendered) => ctx.set_zone_pre_rendered(FOOTER_ZONE, rendered),
+            None => ctx.set_zone_pre_rendered(FOOTER_ZONE, String::new()),
         }
     }
 }

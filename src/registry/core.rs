@@ -64,6 +64,8 @@ impl ZoneRegistry {
                     let state = entry.get_mut();
                     if state.rect != *rect {
                         state.rect = *rect;
+                        state.content.clear();
+                        state.hash = None;
                         state.is_dirty = true;
                         newly_dirty.push(id.clone());
                     }
