@@ -105,7 +105,7 @@ impl GridDemoPlugin {
             self.resize_count
         );
         if let Some(rendered) = ctx.render_zone_with_box(HEADER_ZONE, &header_content, config) {
-            ctx.set_zone(HEADER_ZONE, rendered);
+            ctx.set_zone_pre_rendered(HEADER_ZONE, rendered);
         }
 
         let sidebar_content = format!(
@@ -115,7 +115,7 @@ impl GridDemoPlugin {
             self.resize_count
         );
         if let Some(rendered) = ctx.render_zone_with_box(SIDEBAR_ZONE, &sidebar_content, config) {
-            ctx.set_zone(SIDEBAR_ZONE, rendered);
+            ctx.set_zone_pre_rendered(SIDEBAR_ZONE, rendered);
         }
 
         let main_content = format!(
@@ -125,7 +125,7 @@ impl GridDemoPlugin {
             self.resize_count
         );
         if let Some(rendered) = ctx.render_zone_with_box(MAIN_ZONE, &main_content, config) {
-            ctx.set_zone(MAIN_ZONE, rendered);
+            ctx.set_zone_pre_rendered(MAIN_ZONE, rendered);
         }
 
         let aside_content = format!(
@@ -135,7 +135,7 @@ impl GridDemoPlugin {
             self.resize_count
         );
         if let Some(rendered) = ctx.render_zone_with_box(ASIDE_ZONE, &aside_content, config) {
-            ctx.set_zone(ASIDE_ZONE, rendered);
+            ctx.set_zone_pre_rendered(ASIDE_ZONE, rendered);
         }
 
         let footer_content = format!(
@@ -147,7 +147,7 @@ impl GridDemoPlugin {
             self.resize_count
         );
         if let Some(rendered) = ctx.render_zone_with_box(FOOTER_ZONE, &footer_content, config) {
-            ctx.set_zone(FOOTER_ZONE, rendered);
+            ctx.set_zone_pre_rendered(FOOTER_ZONE, rendered);
         }
     }
 }

@@ -139,7 +139,7 @@ impl ShowcasePlugin {
 
         if let Some(rendered) = ctx.render_zone_with_box(HEADER_ZONE, &header_content, header_config)
         {
-            ctx.set_zone(HEADER_ZONE, rendered);
+            ctx.set_zone_pre_rendered(HEADER_ZONE, rendered);
         }
 
         let sidebar_rect = ctx.rect(SIDEBAR_ZONE);
@@ -163,7 +163,7 @@ impl ShowcasePlugin {
         if let Some(rendered) =
             ctx.render_zone_with_box(SIDEBAR_ZONE, &sidebar_content, sidebar_config)
         {
-            ctx.set_zone(SIDEBAR_ZONE, rendered);
+            ctx.set_zone_pre_rendered(SIDEBAR_ZONE, rendered);
         }
 
         let main_rect = ctx.rect(MAIN_ZONE);
@@ -190,7 +190,7 @@ impl ShowcasePlugin {
         let main_config = BoxConfig::new(&HEAVY).with_min_width(20).with_min_height(10);
 
         if let Some(rendered) = ctx.render_zone_with_box(MAIN_ZONE, &main_content, main_config) {
-            ctx.set_zone(MAIN_ZONE, rendered);
+            ctx.set_zone_pre_rendered(MAIN_ZONE, rendered);
         }
 
         let aside_rect = ctx.rect(ASIDE_ZONE);
@@ -220,7 +220,7 @@ impl ShowcasePlugin {
 
         if let Some(rendered) = ctx.render_zone_with_box(ASIDE_ZONE, &aside_content, aside_config)
         {
-            ctx.set_zone(ASIDE_ZONE, rendered);
+            ctx.set_zone_pre_rendered(ASIDE_ZONE, rendered);
         }
 
         let footer_rect = ctx.rect(FOOTER_ZONE);
@@ -234,7 +234,7 @@ impl ShowcasePlugin {
 
         if let Some(rendered) = ctx.render_zone_with_box(FOOTER_ZONE, &footer_content, footer_config)
         {
-            ctx.set_zone(FOOTER_ZONE, rendered);
+            ctx.set_zone_pre_rendered(FOOTER_ZONE, rendered);
         }
     }
 }
