@@ -287,6 +287,7 @@ pub enum CollapseMode {
     Show,
 }
 
+#[derive(Clone, Copy)]
 pub struct BoxConfig {
     pub style: &'static BoxStyle,
     pub min_width: u16,
@@ -467,8 +468,8 @@ impl<'a> RuntimeContext<'a> {
 
                     let collapsed_content = "...";
                     let box_layout = BoxBuilder::new(collapsed_content)
-                        .with_fixed_width(rect.width as usize)
-                        .with_fixed_height(rect.height as usize)
+                        .with_fixed_width((rect.width as usize).max(1))
+                        .with_fixed_height((rect.height as usize).max(1))
                         .with_style(*config.style)
                         .build();
 
@@ -478,8 +479,8 @@ impl<'a> RuntimeContext<'a> {
         }
 
         let box_layout = BoxBuilder::new(content.as_ref())
-            .with_fixed_width(rect.width as usize)
-            .with_fixed_height(rect.height as usize)
+            .with_fixed_width((rect.width as usize).max(1))
+            .with_fixed_height((rect.height as usize).max(1))
             .with_style(*config.style)
             .build();
 

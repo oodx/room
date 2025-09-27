@@ -95,66 +95,59 @@ impl GridDemoPlugin {
         }
     }
 
-    fn render_zone(&self, ctx: &RuntimeContext, zone_id: &str, title: &str, content: &str) -> Option<String> {
-        let rect = ctx.rect(zone_id)?;
+    fn update_zones(&self, ctx: &mut RuntimeContext) {
+        let config = BoxConfig::new(&ROUNDED);
 
-        let full_content = format!(
-            "{}\n\n{}\n\nSize: {}x{}\nResizes: {}",
-            title,
-            content,
-            rect.width,
-            rect.height,
+        let header_content = format!(
+            "Grid Layout Demo - Phase 2 Complete\n\nHeader spans all 3 columns • Press 'q' to quit\n\nSize: {}x{}\nResizes: {}",
+            ctx.rect(HEADER_ZONE).map(|r| r.width).unwrap_or(0),
+            ctx.rect(HEADER_ZONE).map(|r| r.height).unwrap_or(0),
             self.resize_count
         );
-
-        let config = BoxConfig::new(&ROUNDED);
-        ctx.render_zone_with_box(zone_id, &full_content, config)
-    }
-
-    fn update_zones(&self, ctx: &mut RuntimeContext) {
-        if let Some(content) = self.render_zone(
-            ctx,
-            HEADER_ZONE,
-            "Grid Layout Demo - Phase 2 Complete",
-            "Header spans all 3 columns • Press 'q' to quit",
-        ) {
-            ctx.set_zone(HEADER_ZONE, content);
+        if let Some(rendered) = ctx.render_zone_with_box(HEADER_ZONE, &header_content, config) {
+            ctx.set_zone(HEADER_ZONE, rendered);
         }
 
-        if let Some(content) = self.render_zone(
-            ctx,
-            SIDEBAR_ZONE,
-            "Sidebar",
-            "Fixed width: 20 chars\n\nThis zone maintains a constant width.",
-        ) {
-            ctx.set_zone(SIDEBAR_ZONE, content);
+        let sidebar_content = format!(
+            "Sidebar\n\nFixed width: 20 chars\n\nThis zone maintains a constant width.\n\nSize: {}x{}\nResizes: {}",
+            ctx.rect(SIDEBAR_ZONE).map(|r| r.width).unwrap_or(0),
+            ctx.rect(SIDEBAR_ZONE).map(|r| r.height).unwrap_or(0),
+            self.resize_count
+        );
+        if let Some(rendered) = ctx.render_zone_with_box(SIDEBAR_ZONE, &sidebar_content, config) {
+            ctx.set_zone(SIDEBAR_ZONE, rendered);
         }
 
-        if let Some(content) = self.render_zone(
-            ctx,
-            MAIN_ZONE,
-            "Main Content",
-            "Flex: 2x\n\nThis zone gets 2/3 of the flexible space (2 flex units).",
-        ) {
-            ctx.set_zone(MAIN_ZONE, content);
+        let main_content = format!(
+            "Main Content\n\nFlex: 2x\n\nThis zone gets 2/3 of the flexible space (2 flex units).\n\nSize: {}x{}\nResizes: {}",
+            ctx.rect(MAIN_ZONE).map(|r| r.width).unwrap_or(0),
+            ctx.rect(MAIN_ZONE).map(|r| r.height).unwrap_or(0),
+            self.resize_count
+        );
+        if let Some(rendered) = ctx.render_zone_with_box(MAIN_ZONE, &main_content, config) {
+            ctx.set_zone(MAIN_ZONE, rendered);
         }
 
-        if let Some(content) = self.render_zone(
-            ctx,
-            ASIDE_ZONE,
-            "Aside",
-            "Flex: 1x\n\nThis zone gets 1/3 of the flexible space (1 flex unit).",
-        ) {
-            ctx.set_zone(ASIDE_ZONE, content);
+        let aside_content = format!(
+            "Aside\n\nFlex: 1x\n\nThis zone gets 1/3 of the flexible space (1 flex unit).\n\nSize: {}x{}\nResizes: {}",
+            ctx.rect(ASIDE_ZONE).map(|r| r.width).unwrap_or(0),
+            ctx.rect(ASIDE_ZONE).map(|r| r.height).unwrap_or(0),
+            self.resize_count
+        );
+        if let Some(rendered) = ctx.render_zone_with_box(ASIDE_ZONE, &aside_content, config) {
+            ctx.set_zone(ASIDE_ZONE, rendered);
         }
 
-        if let Some(content) = self.render_zone(
-            ctx,
-            FOOTER_ZONE,
-            "Footer",
-            &format!("Terminal: {}x{} • Spans all columns • Gap: 1", self.term_width, self.term_height),
-        ) {
-            ctx.set_zone(FOOTER_ZONE, content);
+        let footer_content = format!(
+            "Footer\n\nTerminal: {}x{} • Spans all columns • Gap: 1\n\nSize: {}x{}\nResizes: {}",
+            self.term_width,
+            self.term_height,
+            ctx.rect(FOOTER_ZONE).map(|r| r.width).unwrap_or(0),
+            ctx.rect(FOOTER_ZONE).map(|r| r.height).unwrap_or(0),
+            self.resize_count
+        );
+        if let Some(rendered) = ctx.render_zone_with_box(FOOTER_ZONE, &footer_content, config) {
+            ctx.set_zone(FOOTER_ZONE, rendered);
         }
     }
 }
