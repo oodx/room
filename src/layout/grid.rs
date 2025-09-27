@@ -256,6 +256,9 @@ impl GridLayout {
             let height: u16 = row_sizes[area.rows.start..area.rows.end].iter().sum::<u16>()
                 + self.gap.saturating_mul((area.rows.end - area.rows.start).saturating_sub(1) as u16);
 
+            let width = width.min(total_size.width.saturating_sub(x));
+            let height = height.min(total_size.height.saturating_sub(y));
+
             result.insert(
                 zone_id.clone(),
                 Rect {
@@ -277,7 +280,12 @@ impl GridLayout {
 
         let track_count = tracks.len();
         let total_gap = gap.saturating_mul((track_count.saturating_sub(1)) as u16);
-        let available = total.saturating_sub(total_gap);
+
+        let available = if total_gap >= total {
+            0
+        } else {
+            total - total_gap
+        };
 
         let mut track_sizes = vec![0u16; track_count];
         let mut remaining = available;
@@ -385,10 +393,12 @@ impl GridLayout {
         for (i, &size) in track_sizes.iter().enumerate() {
             cumulative = cumulative.saturating_add(size);
 
-            if i < track_count - 1 {
-                cumulative = cumulative.saturating_add(gap);
+            if i < track_count - 1 && cumulative < total {
+                let gap_to_add = gap.min(total.saturating_sub(cumulative));
+                cumulative = cumulative.saturating_add(gap_to_add);
             }
 
+            cumulative = cumulative.min(total);
             offsets.push(cumulative);
         }
 
@@ -866,5 +876,87 @@ mod tests {
         assert!(result["b"].x <= 2);
         assert!(result["c"].x <= 2);
         assert!(result["d"].x <= 2);
+    }
+
+    #[test]
+    fn test_grid_layout_solve_gap_larger_than_terminal() {
+        let mut grid = GridLayout::new();
+        grid.add_col(GridSize::Fixed(10))
+            .add_col(GridSize::Fixed(10))
+            .add_row(GridSize::Fixed(5))
+            .with_gap(100);
+
+        grid.place("a", GridArea::cell(0, 0)).unwrap();
+        grid.place("b", GridArea::cell(0, 1)).unwrap();
+
+        let result = grid.solve(Size::new(50, 20)).unwrap();
+
+        assert!(result["a"].x + result["a"].width <= 50, "Zone 'a' exceeds terminal width");
+        assert!(result["b"].x + result["b"].width <= 50, "Zone 'b' exceeds terminal width");
+        assert!(result["a"].x <= 50);
+        assert!(result["b"].x <= 50);
+    }
+
+    #[test]
+    fn test_grid_layout_solve_gap_equals_terminal_width() {
+        let mut grid = GridLayout::new();
+        grid.add_col(GridSize::Fixed(5))
+            .add_col(GridSize::Fixed(5))
+            .add_row(GridSize::Fixed(5))
+            .with_gap(10);
+
+        grid.place("a", GridArea::cell(0, 0)).unwrap();
+        grid.place("b", GridArea::cell(0, 1)).unwrap();
+
+        let result = grid.solve(Size::new(10, 20)).unwrap();
+
+        assert!(result["a"].x <= 10);
+        assert!(result["b"].x <= 10);
+        assert!(result["a"].x + result["a"].width <= 10);
+        assert!(result["b"].x + result["b"].width <= 10);
+    }
+
+    #[test]
+    fn test_grid_layout_solve_excessive_gap_with_small_terminal() {
+        let mut grid = GridLayout::new();
+        grid.add_col(GridSize::percent(50))
+            .add_col(GridSize::percent(50))
+            .add_row(GridSize::Fixed(5))
+            .with_gap(5);
+
+        grid.place("a", GridArea::cell(0, 0)).unwrap();
+        grid.place("b", GridArea::cell(0, 1)).unwrap();
+
+        let result = grid.solve(Size::new(2, 20)).unwrap();
+
+        assert!(result["a"].x <= 2, "Zone 'a' x position {} exceeds terminal width 2", result["a"].x);
+        assert!(result["b"].x <= 2, "Zone 'b' x position {} exceeds terminal width 2", result["b"].x);
+
+        let max_x_a = result["a"].x + result["a"].width;
+        let max_x_b = result["b"].x + result["b"].width;
+        assert!(max_x_a <= 2, "Zone 'a' right edge {} exceeds terminal width 2", max_x_a);
+        assert!(max_x_b <= 2, "Zone 'b' right edge {} exceeds terminal width 2", max_x_b);
+    }
+
+    #[test]
+    fn test_grid_layout_solve_gap_consumes_all_space() {
+        let mut grid = GridLayout::new();
+        grid.add_col(GridSize::flex(1))
+            .add_col(GridSize::flex(1))
+            .add_col(GridSize::flex(1))
+            .add_row(GridSize::Fixed(10))
+            .with_gap(50);
+
+        grid.place("a", GridArea::cell(0, 0)).unwrap();
+        grid.place("b", GridArea::cell(0, 1)).unwrap();
+        grid.place("c", GridArea::cell(0, 2)).unwrap();
+
+        let result = grid.solve(Size::new(100, 20)).unwrap();
+
+        for zone in ["a", "b", "c"] {
+            let rect = &result[zone];
+            assert!(rect.x <= 100, "Zone '{}' x position exceeds terminal", zone);
+            assert!(rect.x + rect.width <= 100, "Zone '{}' extends beyond terminal", zone);
+        }
     }
 }
