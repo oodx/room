@@ -697,6 +697,7 @@ pub struct RoomRuntime {
     config: RuntimeConfig,
     should_exit: bool,
     redraw_requested: bool,
+    resize_pending: bool,
     start_instant: Option<Instant>,
     last_metrics_emit: Option<Instant>,
     shared_state: shared_state::SharedState,
@@ -743,6 +744,7 @@ impl RoomRuntime {
             config,
             should_exit: false,
             redraw_requested: true,
+            resize_pending: false,
             start_instant: None,
             last_metrics_emit: None,
             shared_state: shared_state::SharedState::new(),
@@ -1176,6 +1178,10 @@ impl RoomRuntime {
 
         let dirty = self.registry.take_dirty();
         if !dirty.is_empty() {
+            if self.resize_pending {
+                write!(stdout, "\x1b[2J")?;
+                self.resize_pending = false;
+            }
             self.renderer.render(stdout, &dirty)?;
             self.record_render_metric(dirty.len());
             self.log_runtime_event(
@@ -1465,11 +1471,17 @@ impl RoomRuntime {
     }
 
     fn handle_resize(&mut self, size: Size) -> Result<()> {
+        use std::io::Write;
+        let mut stdout = std::io::stdout();
+        write!(stdout, "\x1b[2J")?;
+        stdout.flush()?;
+
         self.current_size = size;
         let rects = self.layout.solve(size)?;
         self.rects = rects;
         self.registry.sync_layout(&self.rects);
         self.redraw_requested = true;
+        self.resize_pending = true;
         self.log_runtime_event(
             LogLevel::Info,
             "resized",
