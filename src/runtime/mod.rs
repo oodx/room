@@ -11,7 +11,7 @@ use self::focus::{FocusController, FocusEntry, ensure_focus_registry};
 use self::screens::{ScreenActivation, ScreenManager};
 use crate::logging::{event_with_fields, json_kv};
 use crate::{
-    AnsiRenderer, LayoutError, LayoutTree, LogLevel, Logger, Rect, Result, RuntimeMetrics, Size,
+    AnsiRenderer, Layout, LayoutError, LogLevel, Logger, Rect, Result, RuntimeMetrics, Size,
     ZoneRegistry,
 };
 pub mod audit;
@@ -599,7 +599,7 @@ pub trait RoomPlugin: Send {
 }
 
 pub struct RoomRuntime {
-    layout: LayoutTree,
+    layout: Box<dyn Layout>,
     rects: HashMap<String, Rect>,
     registry: ZoneRegistry,
     renderer: AnsiRenderer,
@@ -624,12 +624,12 @@ pub struct RoomRuntime {
 }
 
 impl RoomRuntime {
-    pub fn new(layout: LayoutTree, renderer: AnsiRenderer, initial_size: Size) -> Result<Self> {
+    pub fn new(layout: impl Layout + 'static, renderer: AnsiRenderer, initial_size: Size) -> Result<Self> {
         Self::with_config(layout, renderer, initial_size, RuntimeConfig::default())
     }
 
     pub fn with_config(
-        layout: LayoutTree,
+        layout: impl Layout + 'static,
         renderer: AnsiRenderer,
         initial_size: Size,
         config: RuntimeConfig,
@@ -645,7 +645,7 @@ impl RoomRuntime {
             .unwrap_or_else(|| Arc::new(NullRuntimeAudit));
 
         let runtime = Self {
-            layout,
+            layout: Box::new(layout),
             rects,
             registry,
             renderer,
@@ -1391,9 +1391,9 @@ impl RoomRuntime {
         Ok(())
     }
 
-    pub(crate) fn apply_screen_layout(&mut self, layout: LayoutTree) -> Result<()> {
+    pub(crate) fn apply_screen_layout(&mut self, layout: impl Layout + 'static) -> Result<()> {
         let rects = layout.solve(self.current_size)?;
-        self.layout = layout;
+        self.layout = Box::new(layout);
         self.rects = rects;
         self.registry.sync_layout(&self.rects);
         self.redraw_requested = true;

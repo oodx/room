@@ -18,7 +18,7 @@ pub mod zone;
 
 pub use error::{LayoutError, Result};
 pub use geometry::{Rect, Size};
-pub use layout::{Constraint, Direction, LayoutNode, LayoutTree};
+pub use layout::{Constraint, Direction, GridArea, GridError, GridLayout, GridSize, Layout, LayoutNode, LayoutTree};
 pub use logging::{LogEvent, LogFields, LogLevel, Logger, LoggingError, LoggingResult};
 pub use metrics::{MetricSnapshot, RuntimeMetrics};
 pub use registry::{ZoneContent, ZoneId, ZoneRegistry};

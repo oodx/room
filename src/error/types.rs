@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::layout::GridError;
+
 /// Unified result type for the Room MVP crate.
 pub type Result<T> = std::result::Result<T, LayoutError>;
 
@@ -14,6 +16,8 @@ pub enum LayoutError {
     TokenRouting(String),
     #[error("terminal backend error: {0}")]
     Backend(String),
+    #[error("grid layout error: {0}")]
+    Grid(#[from] GridError),
     #[error(transparent)]
     Io(#[from] std::io::Error),
 }
