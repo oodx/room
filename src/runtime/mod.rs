@@ -3,6 +3,8 @@ use std::io::Write;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use boxy::api::layout::BoxBuilder;
+use boxy::visual::{BoxStyle, NORMAL};
 use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 use serde_json::json;
 
@@ -279,6 +281,56 @@ pub enum EventFlow {
     Consumed,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CollapseMode {
+    Hide,
+    Show,
+}
+
+pub struct BoxConfig {
+    pub style: &'static BoxStyle,
+    pub min_width: u16,
+    pub min_height: u16,
+    pub collapse_mode: CollapseMode,
+}
+
+impl BoxConfig {
+    pub fn new(style: &'static BoxStyle) -> Self {
+        Self {
+            style,
+            min_width: 10,
+            min_height: 3,
+            collapse_mode: CollapseMode::Show,
+        }
+    }
+
+    pub fn with_style(mut self, style: &'static BoxStyle) -> Self {
+        self.style = style;
+        self
+    }
+
+    pub fn with_min_width(mut self, min_width: u16) -> Self {
+        self.min_width = min_width;
+        self
+    }
+
+    pub fn with_min_height(mut self, min_height: u16) -> Self {
+        self.min_height = min_height;
+        self
+    }
+
+    pub fn with_collapse_mode(mut self, mode: CollapseMode) -> Self {
+        self.collapse_mode = mode;
+        self
+    }
+}
+
+impl Default for BoxConfig {
+    fn default() -> Self {
+        Self::new(&NORMAL)
+    }
+}
+
 /// Context passed to plugins so they can interact with the runtime safely.
 pub struct RuntimeContext<'a> {
     rects: &'a HashMap<String, Rect>,
@@ -395,6 +447,43 @@ impl<'a> RuntimeContext<'a> {
     /// Fetch the solved rectangle for a zone if available.
     pub fn rect(&self, zone_id: &str) -> Option<&Rect> {
         self.rects.get(zone_id)
+    }
+
+    pub fn render_zone_with_box(
+        &self,
+        zone_id: &str,
+        content: impl AsRef<str>,
+        config: BoxConfig,
+    ) -> Option<String> {
+        let rect = self.rect(zone_id)?;
+
+        if rect.width < config.min_width || rect.height < config.min_height {
+            match config.collapse_mode {
+                CollapseMode::Hide => return None,
+                CollapseMode::Show => {
+                    if rect.width < 5 || rect.height < 3 {
+                        return None;
+                    }
+
+                    let collapsed_content = "...";
+                    let box_layout = BoxBuilder::new(collapsed_content)
+                        .with_fixed_width(rect.width as usize)
+                        .with_fixed_height(rect.height as usize)
+                        .with_style(*config.style)
+                        .build();
+
+                    return Some(box_layout.render());
+                }
+            }
+        }
+
+        let box_layout = BoxBuilder::new(content.as_ref())
+            .with_fixed_width(rect.width as usize)
+            .with_fixed_height(rect.height as usize)
+            .with_style(*config.style)
+            .build();
+
+        Some(box_layout.render())
     }
 
     /// Access shared state resources by type.

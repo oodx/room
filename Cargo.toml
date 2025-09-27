@@ -9,6 +9,7 @@ path = "src/lib.rs"
 
 [dependencies]
 rsb = { path = "../../projects/rsb" }
+boxy = { path = "../boxy" }
 crossterm = "0.27"
 blake3 = "1.5"
 thiserror = "1.0"

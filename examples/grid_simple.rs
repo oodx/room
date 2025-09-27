@@ -17,13 +17,12 @@
 //! Try resizing your terminal to see the grid adapt!
 
 use room_mvp::{
-    AnsiRenderer, CliDriver, EventFlow, GridArea, GridLayout, GridSize, Result, RoomPlugin,
-    RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent, Size,
+    AnsiRenderer, BoxConfig, CliDriver, EventFlow, GridArea, GridLayout, GridSize, Result,
+    RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent, Size,
 };
 use room_mvp::runtime::audit::{BootstrapAudit, NullRuntimeAudit};
-use std::sync::Arc;
-use boxy::api::layout::BoxBuilder;
 use boxy::visual::ROUNDED;
+use std::sync::Arc;
 use crossterm::event::{KeyCode, KeyModifiers};
 use crossterm::terminal;
 
@@ -108,13 +107,8 @@ impl GridDemoPlugin {
             self.resize_count
         );
 
-        let boxy_layout = BoxBuilder::new(&full_content)
-            .with_fixed_width(rect.width as usize)
-            .with_fixed_height(rect.height as usize)
-            .with_style(ROUNDED)
-            .build();
-
-        Some(boxy_layout.render())
+        let config = BoxConfig::new(&ROUNDED);
+        ctx.render_zone_with_box(zone_id, &full_content, config)
     }
 
     fn update_zones(&self, ctx: &mut RuntimeContext) {

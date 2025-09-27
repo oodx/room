@@ -45,8 +45,8 @@ pub use runtime::screens::{
 };
 pub use runtime::shared_state::{SharedState, SharedStateError};
 pub use runtime::{
-    EventFlow, PluginBundle, RoomPlugin, RoomRuntime, RuntimeConfig, RuntimeContext, RuntimeEvent,
-    SimulatedLoop,
+    BoxConfig, CollapseMode, EventFlow, PluginBundle, RoomPlugin, RoomRuntime, RuntimeConfig,
+    RuntimeContext, RuntimeEvent, SimulatedLoop,
 };
 pub use tokens::{ZoneTokenRouter, ZoneTokenUpdate};
 pub use width::display_width;
