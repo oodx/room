@@ -1,7 +1,7 @@
 # Grid Layout Implementation Status
 
 **Last Updated:** 2025-09-26
-**Current Phase:** Phase 2 (Runtime Integration)
+**Current Phase:** Phase 3 (Boxy Integration Helpers)
 
 ## Progress Summary
 
@@ -24,8 +24,17 @@
   - Minimum size guarantee with budget enforcement
   - Over-constrained layout protection
 
+- **Phase 2: Runtime Integration** (Complete - Commits `f79683e`, `305ef76`, `8d858b8`)
+  - **Phase 2.1-2.2:** Layout trait with GridLayout and LayoutTree implementations
+  - **Phase 2.3-2.4:** RoomRuntime updated to Box<dyn Layout>, resize working
+  - **Phase 2.5:** Created examples/grid_simple.rs demonstrating GridLayout
+  - **Phase 2.6:** Fixed gap overflow bug (zones exceeding terminal boundaries)
+  - 40/40 tests passing
+  - Decision: Kept LayoutTree for backwards compatibility (both work via trait)
+  - Gap edge cases: excessive gaps, gap >= terminal width, gap consumes all space
+
 ### ⏳ In Progress
-- **Phase 2:** Runtime integration (Next up)
+- **Phase 3:** Boxy integration helpers (Next up)
 
 ### 🔮 Upcoming
 - **Phase 3:** Boxy integration helpers
@@ -72,21 +81,16 @@
 
 ## Next Steps
 
-**Phase 2: Runtime Integration**
-1. Integrate GridLayout with RoomRuntime
-2. Update runtime to use `solve()` for layout calculation
-3. Deprecate or remove old LayoutTree system
-4. Update all examples to use GridLayout
-5. Test resize handling with grid layouts
-
 **Phase 3: Boxy Integration Helpers**
-- Helper methods for rendering zones with Boxy
-- Visibility controls integration
-- Dynamic show/hide support
+1. Add RuntimeContext helper methods for automatic Boxy rendering
+2. Implement minimum size handling (collapse/hide zones below threshold)
+3. Implement automatic wrapping control (detect overflow, wrap/truncate)
+4. Add resize-aware rendering (zones re-render when Rect changes)
+5. Test with grid_simple.rs and create more complex examples
 
 ## Test Coverage
 
-### Phase 1 Complete: 36/36 tests passing
+### Phase 1-2 Complete: 40/40 tests passing
 
 **GridSize (7 tests)**
 - ✅ Construction: Fixed, Flex, Percent variants
@@ -100,7 +104,7 @@
 - ✅ Overlap detection: true/false cases, adjacent, contained
 - ✅ Out of bounds: row/column overflow
 
-**GridLayout (17 tests)**
+**GridLayout (21 tests)**
 - ✅ Builder pattern: add_col, add_row, place, with_gap
 - ✅ Placement validation: duplicate zones, out of bounds, overlaps
 - ✅ Solver - Fixed sizing only
@@ -115,17 +119,22 @@
 - ✅ Solver - Percent normalization with leftover
 - ✅ Solver - Over-constrained budget (more tracks than pixels)
 - ✅ Solver - More tracks than pixels edge case
+- ✅ Solver - Gap overflow: larger than terminal
+- ✅ Solver - Gap overflow: equals terminal width
+- ✅ Solver - Gap overflow: excessive gap with small terminal
+- ✅ Solver - Gap overflow: consumes all space
 
 ## Blockers / Issues
 
-**None currently** - Design approved, implementation proceeding smoothly.
+**None currently** - Phase 1-2 complete, ready for Phase 3.
 
 ## Breaking Changes
 
-These will happen in **Phase 2** (Runtime Integration):
-- Delete `LayoutTree`, `LayoutNode`, `Constraint`, `Direction` from `src/layout/core.rs`
-- Update all examples to use `GridLayout`
-- Update `RoomRuntime` to accept `GridLayout` instead of `LayoutTree`
+**Phase 2 Decision**: Kept LayoutTree for backwards compatibility
+- Both GridLayout and LayoutTree work via Layout trait
+- RoomRuntime uses Box<dyn Layout> for runtime polymorphism
+- No breaking changes to existing code using LayoutTree
+- New code can use GridLayout for simpler, more powerful layouts
 
 ## Boxy Integration Notes
 
